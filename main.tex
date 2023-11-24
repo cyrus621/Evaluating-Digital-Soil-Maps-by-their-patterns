@@ -11,14 +11,14 @@
 \usepackage{graphicx} % Allows including images
 \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
 
+\usepackage{url} % for live links
+
 % -----------
 % Set ISRIC style
 \usetheme{isric}
-
 % -----------
 % Set font to serif - required by the Electrum font
 \usefonttheme{serif}
-
 
 % -- Section title pages
 % Current section
@@ -31,16 +31,15 @@
 
 %----------------
 % Title and authors
-
 \title{Evaluating Digital Soil Maps by their patterns}
 
-\subtitle{or \ldots point evaluation statistics are not sufficient}
+%\subtitle{or \ldots point evaluation statistics are not sufficient}
 
-\author{David G. Rossiter}
+\author{David G.\ Rossiter\\[1ex]Guest Researcher, ISRIC--World Soil Information\\Adjunct Professor, Section of Soil \& Crop Sciences, Cornell University}
 
-\institute[ISRIC]{ISRIC -- World Soil Information}
+%\institute[ISRIC]{ISRIC -- World Soil Information}
 
-\date{27-October-2023}
+\date{\today}
 
 %====================================================================
 \begin{document}
@@ -77,26 +76,28 @@
 \frametitle{Digital Soil Mapping}
 
 Direct production of digital maps\ldots\\
-\ldots of soil properties or classes\ldots\\
+\ldots of soil \textbf{properties} or \textbf{classes}\ldots\\
 \ldots by machine-learning or geostatistical methods\ldots\\
 \ldots from \textbf{training points}\ldots\\
 \ldots and \textbf{covariates} that are surrogates for \textbf{soil-forming factors}, covering the study area.
 \\[2ex]
-DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size'')
+Conceptual basis (McBratney \textit{et al.} 2013): $S = f(s, c, o, r, p, a, n) + \varepsilon$ 
 \end{frame}
 
-\begin{frame}{Example: ISRIC SoilGrids v2.0}
+
+
+\begin{frame}{Example DSM product: ISRIC SoilGrids v2.0}
 \begin{figure}
     \centering
-\includegraphics[height=0.8\textheight]{./graphics_david/SoilGrids_SOCstock_Chengdu.png}
+\includegraphics[height=0.75\textheight]{./graphics_david/SoilGrids_SOCstock_Chengdu.png}
 \end{figure}
 \end{frame}
 
 \begin{frame}{Detail; uncertainty}
 \begin{figure}
-\includegraphics[width=0.45\textwidth]{./graphics_david/SoilGridsDetail.png}
+\includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsDetail.png}
 \hfill
-\includegraphics[width=0.45\textwidth]{./graphics_david/SoilGridsUncertainty.png}
+\includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsUncertainty.png}
 \end{figure}
 \end{frame}
 
@@ -105,49 +106,48 @@ DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size
         \item On the basis of \textbf{test points}
         \begin{itemize}
             \item independent test set in target area
-            \item out-of-bag (ML methods) members of training set, not used in one calibration
+            \item out-of-bag (OOB) in bagged Machine Learning (ML) methods: members of training set, not used in one calibration
             \item repeated splits into test/training of one dataset
         \end{itemize}
-        \item summary statistics: ME, RMSE, 1:1 $R^2$ (MCC, Nash-Sutcliffe Model Efficiency), gain/bias of actual regressed on observed \ldots
+        \item (pointwise) \textbf{evaluation statistics}: ME, RMSE, 1:1 $R^2$ (MCC, Nash-Sutcliffe Model Efficiency), gain/bias of actual regressed on observed \ldots
     \end{itemize}
 \end{frame}
 
 
-\begin{frame}{Problems with point statistics}
+\begin{frame}{Problems with point statistics evaluation -- Internal}
+From the mapper's point of view:
 \begin{enumerate}
-    \item Based on a \textbf{limited number of observations}, far fewer than the number of predictions (grid cells, pixels).
+    \item Based on a \textbf{limited number of observations}, far fewer than the number of predictions (grid cells, ``pixels'').
 \item Evaluation points are almost never from an independent \textbf{probability sample}.
-\item Cross-validation and data-splitting approaches rely on a \textbf{biased point set}.
-\item Evidence shows that different DSM approaches can result in maps with quite \textbf{similar "validation statistics" but obviously different spatial patterns}.
-\item  Soils are \textbf{managed as units}, not point-wise.
-\item  Land-surface models often rely on 2D or 3D \textbf{connectivity} between grid cells.
-\item  More than a century of fieldwork has shown that \textbf{soils occur in more-or-less homogeneous patches}, \emph{not} as isolated pedons.
+\item Cross-validation and data-splitting approaches rely on this \textbf{biased} point set.
+\item Evidence: Different DSM approaches can result in maps with quite \textbf{similar "validation statistics" but obviously different spatial patterns}.
   \end{enumerate}
   
 \end{frame}
 
-\begin{frame}{Example: ISRIC WoSIS points}
+
+\begin{frame}{Example of limited evaluation points: ISRIC WoSIS}
 \begin{figure}
     \centering
-\includegraphics[height=0.8\textheight]{./graphics_david/SoilGridsProfiles_Chengdu.png}
+\includegraphics[height=0.7\textheight]{./graphics_david/SoilGridsProfiles_Chengdu.png}
 \end{figure}
 \end{frame}
 
 
 
 \begin{frame}{Different ML methods, different patterns}
-        \begin{figure}
-        \centering
-        \includegraphics[height=0.75\textheight]{./graphics_david/Fig07.png}
-        \\{pH x 10, 0-5~cm}
-    \end{figure}
+        \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07a.png}
+        \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07b.png}
+\par        
+{\hfill        
+        {pH x 10, 0-5~cm} \hfill}
 \end{frame}
 
-\newpage
-\begin{frame}{Difference map -- this also has a pattern!}
-        \centering        \includegraphics[height=0.75\textheight]  {graphics_david/Delta_gNATSGO_SG_ph05.png}
-\\
-$\Delta \mathrm{pH x 10}$
+\begin{frame}{Detail}
+\begin{figure}
+    \centering
+    \includegraphics[height=0.72\textheight]{./graphics_david/Fig07b.png}
+ \end{figure}
 \end{frame}
 
 
@@ -164,6 +164,17 @@ $\Delta \mathrm{pH x 10}$
         \centering
 \includegraphics[height=0.7\textheight]{./graphics_david/Genova_poster_stats.png}
      \end{figure}
+\end{frame}
+
+\begin{frame}{Problems with point statistics evaluation -- External}
+
+From the map user's point of view:
+\begin{enumerate}
+\item  Soils are \textbf{managed as units} at some scale, \emph{not} point-wise.
+\item  Land-surface models often rely on 2D or 3D \textbf{connectivity} between grid cells.
+\item  More than a century of fieldwork has shown that \textbf{soils occur in more-or-less homogeneous patches}, \emph{not} as isolated pedons (Fridland, Boulaine, Hole \ldots).
+  \end{enumerate}
+  
 \end{frame}
 
 \section{Patterns of soils on the landscape}
@@ -322,6 +333,13 @@ Effective range in m; structural sill in $(\mathrm{pH}x10)^2$, proportional nugg
     \end{figure}
 \end{frame}
 
+\begin{frame}{Difference map of continuous property -- this also has a pattern}
+        \centering        \includegraphics[height=0.72\textheight]  {graphics_david/Delta_gNATSGO_SG_ph05.png}
+\\
+$\Delta \mathrm{pH x 10}$
+\end{frame}
+
+
 \subsection{Class maps}
 
 \begin{frame}{Characterizing patterns -- classified soil properties or soil classes}
@@ -410,11 +428,12 @@ where the patch perimeters are ${p_{ij}}$ in linear units and the areas are ${a_
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Comparing two maps}
+\begin{frame}{Comparing two maps with V-measures}
     \begin{figure}
-        \centering        \includegraphics[height=0.8\textheight]{graphics_david/Fig16.png}
+        \centering        \includegraphics[height=0.72\textheight]{graphics_david/Fig16.png}
     \end{figure}
 \end{frame}
+
 
 \begin{frame}{V-measure example}
 \input{tables/compare_vmeasure_lat4243_lon-77-76_phh2o_0-5}   
@@ -428,6 +447,7 @@ V-measure statistics, pHx10 0--5~cm
   \par  
     This is a probability vector for the co-occurrence of different classes.
 \end{frame}
+
 \begin{frame}{Segmentation by patterns}
 \begin{itemize}
     \item 
@@ -463,6 +483,28 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
         \includegraphics[height=0.75\textheight]{graphics_david/10.1016.0016-7061(78)90002-2_Fig12.png}
 \\source: Hole (1978)
     \end{figure}
+\end{frame}
+
+\begin{frame}{Resolution and scale}
+DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size'') -- what is the relation to map scale?
+\\[2ex]
+    \begin{figure}
+    \centering
+\includegraphics[width=\textwidth]{./graphics_david/McBratney2013_Table1.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}{What will the map be used for?}
+    \begin{itemize}
+        \item This governs the selection of grid cell size.
+        \item The soil variability \emph{within} the grid cell is ignored \ldots
+        \begin{itemize}
+            \item \ldots for the map user \ldots
+            \item so, for the evaluator
+        \end{itemize}
+        \item The \textbf{single value} of the grid cell represents the value the user will put in their ``model''
+        \item The \textbf{uncertainty} of the grid cell is the uncertainty \textbf{of that predicted value}, \emph{not} the variance within the grid cell.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Should the DSM match the polygon map?}
@@ -502,8 +544,11 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
 
  \begin{center}
  \vspace{0.5cm}
- \textcolor{isric_yellow}{\Large{Questions, comments?}}
+ \textcolor{isric_yellow}{\Large{Questions, comments, suggestions?}}
  \end{center}
+\textcolor{isric_yellow}{www: \url{https://www.css.cornell.edu/faculty/dgr2/index.html}}
+\\ 
+\textcolor{isric_yellow}{e-mail: \url{david.rossiter@wur.nl}}
 \end{frame} 
 }
 
@@ -516,6 +561,9 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
 \begin{frame}[allowframebreaks]{References}
 \begin{itemize}
 
+    \item Boulaine, J. (1982). Remarques sur quelques notions élémentaires de la pédologie”. Cahiers O.R.S.T.O.M., série Pédologie, 19(1), 29-41.
+
+    
     \item Fridland, V. M. (1974). Structure of the soil mantle. Geoderma, 12, 35-42. https://doi.org/10.1016/0016-7061(74)90036-6
 
     \item Hole, F. D. (1978). An approach to landscape analysis with emphasis on soils. Geoderma, 21(1), 1-23. https://doi.org/10.1016/0016-7061(78)90002-2
@@ -527,6 +575,8 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
 
 
     \item Lagacherie, P., Andrieux, P., \& Bouzigues, R. (1996). Fuzziness and uncertainty of soil boundaries: From reality to coding in GIS. In P. A. Burrough, A. U. Frank, \& F. Salgé (Red.), Geographic objects with indeterminate boundaries (pp. 275-286). Taylor \& Francis.
+
+    \item McBratney, A. B., Mendon\c{c}a Santos, M. L., \& Minasny, B. (2003). On digital soil mapping. Geoderma, 117(1-2), 3-52. https://doi.org/10.1016/S0016-7061(03)00223-4
 
     \item Nowosad, J. (2021). Motif: An open-source R tool for pattern-based spatial analysis. Landscape Ecology, 36(1), 29-43. https://doi.org/10.1007/s10980-020-01135-0
 
