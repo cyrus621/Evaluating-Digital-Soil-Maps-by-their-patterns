@@ -12,4 +12,4 @@ Digital soil maps are usually evaluated by point-wise “validation statistics�
 
 This presentation starts from these problems and proposes to evaluate DSM products by their spatial patterns.
 
-![Uploading GenovaPosterFig1a.png…]()
+![Same points, covariates, ML but different parameters](./graphics_david/GenovaPosterFig1a.png)
