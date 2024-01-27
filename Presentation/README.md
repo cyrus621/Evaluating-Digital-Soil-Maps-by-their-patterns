@@ -1,4 +1,4 @@
-# Project: Evaluating Digital Soil Maps by their patterns
+# Presentation: Evaluating Digital Soil Maps by their patterns
 
 Digital soil maps are usually evaluated by point-wise “validation statistics”. This evaluation is quite limited:
 
@@ -13,6 +13,8 @@ From the map user's point of view:
 - Land-surface models often rely on 2D or 3D connectivity between grid cells.
 - More than a century of fieldwork has shown that soils occur in more-or-less homogeneous patches of various sizes, not as isolated pedons.
 
-This *project* contains a *presentation* ("slides") and a *tutorial*, each in a subfolder.
+This *presentation* starts from these problems and proposes to evaluate DSM products by their spatial patterns.
+
+Here is an example: Same points, covariates, ML but different parameters: almost identical point-wise evaluation statistics, but very different patterns. Which is the "best" map?
 
 ![Same points, covariates, ML but different parameters](./graphics_david/GenovaPosterFig1a.png)
