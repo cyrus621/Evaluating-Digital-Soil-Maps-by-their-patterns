@@ -13,6 +13,6 @@ From the map user's point of view:
 - Land-surface models often rely on 2D or 3D connectivity between grid cells.
 - More than a century of fieldwork has shown that soils occur in more-or-less homogeneous patches of various sizes, not as isolated pedons.
 
-This *project* contains a *presentation* ("slides") and a *tutorial*, each in a subfolder.
+This *project* contains a *presentation* ("slides") and a *workshop tutorial*, each in a subfolder.
 
 ![Same points, covariates, ML but different parameters](./Presentation/graphics_david/GenovaPosterFig1a.png)
