@@ -11,7 +11,8 @@ Compiled documents: `.pdf` and `.html` (with supporting folders)
 Script to install required packages: `InstallWorkshopPackages.R`
 
 R Markdown sources to import digital soil maps (see instructions in source or PDF):
--- from gNATSGP `gNATSGO_WCS_import.Rmd`
+
+-- from gNATSGO `gNATSGO_WCS_import.Rmd`
 -- from SoilGrids v2.0 `SoilGrids250_WCS_import.Rmd`
 
 ![Compare](./PatternAnalysisWorkshopTutorial_files/figure-html/moving-window-5-1.png)
