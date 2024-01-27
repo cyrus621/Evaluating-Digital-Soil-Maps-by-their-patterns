@@ -15,4 +15,4 @@ From the map user's point of view:
 
 This *project* contains a *presentation* ("slides") and a *tutorial*, each in a subfolder.
 
-![Same points, covariates, ML but different parameters](./graphics_david/GenovaPosterFig1a.png)
+![Same points, covariates, ML but different parameters](./Presentation/graphics_david/GenovaPosterFig1a.png)

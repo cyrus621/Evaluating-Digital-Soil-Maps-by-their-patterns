@@ -10,4 +10,4 @@ Compiled documents: `.pdf` and `.html` (with supporting folders)
 
 Script to install required packages: `InstallWorkshopPackages.R`
 
-![Compare](./figure-html/crop.2-1.png)
+![Compare](./PatternAnalysisWorkshopTutorial_files/figure-html/moving-window-5-1.png)
