@@ -15,4 +15,6 @@ R Markdown sources to import digital soil maps (see instructions in source or PD
 -- from gNATSGO `gNATSGO_WCS_import.Rmd`
 -- from SoilGrids v2.0 `SoilGrids250_WCS_import.Rmd`
 
+Example maps downloaded with these scripts: `Compare_DSM_example_maps.zip` (uncompress into a folder structure).
+
 ![Compare](./PatternAnalysisWorkshopTutorial_files/figure-html/moving-window-5-1.png)
