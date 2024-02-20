@@ -120,6 +120,8 @@ library(supercells)
 # compare two rasters directly -- in development
 # devtools::install_github("Nowosad/spquery")
 # library(spquery)
+# analyze cross-classification matrices
+library(diffeR) 
 ```
 
 ## Directories
@@ -745,6 +747,86 @@ These maps are now showing meaningful landscape units, from the point of view of
 Q: Describe the patterns of the two maps
 
 Q: How would these maps change with wider or narrower class intervals? You are welcome to experiment!
+
+## Cross-classification matrix {#sec-crosstab}
+
+As in classic remote sensing analysis, we can compare one of the maps (SG2) to the "reference" map (gNATSGO). This is implemented in the `diffeR` package.
+
+Create the cross-classification matrix showing pixel counts:
+
+```{r}
+#| label: diffeR
+dim(ccm <- diffeR::crosstabm(sg.class, gn.class))
+sum(ccm)
+prod(dim(gn.class))  # total pixels, includes some NA
+ccm[1:5, 1:5]
+```
+
+This can also show percentages:
+
+
+```{r}
+#| label:  diffeR.p
+dim(ccm.p <- diffeR::crosstabm(sg.class, gn.class, percent = TRUE))
+sum(ccm.p)
+```
+
+```{r}
+ccm.p[1:5, 1:5]
+```
+
+Analyze its sources of disagreement, according to the classification of @pontiusQuantityExchangeShift2014. (See also @PontiusDeathKappabirth2011 for an easier introduction to the concepts of quantity and allocation disagreement.)
+
+```{r}
+#| label: diffeR.table
+(dt <- diffeR::diffTablej(ccm))
+```
+
+- *Agreement* means the pixels at the same location are in the same class.
+- *Omission* means that test map does not find the "correct" class, i.e., the given `Category` that is found the reference map at the pixel.
+- *Commission* means that test map predicts a class of the given `Category` at the pixel that is not found in the reference map at that pixel.
+- *Quantity* disagreement is the sum of Commission and Omission errors, less the `Exchange` and `Shift` (see next), i.e., the errors caused by not having the same number of pixels in the category.
+- *Exchange* disagreement is the number of pixels where a transition from class _i_ to class _j_ in some pixels, balanced by a transition from class _j_ to category _i_ in an identical number of other pixels. So the quantity does not change, but the location in the map does.
+- *Shift* disagreement is the error that remains after subtracting quantity difference and exchange from the overall difference. These are unbalanced transitions.
+
+The total error is the sum of Quantity, Exchange and Shift. These have different interpretations and possible corrections.
+
+- *Quantity*: the soil class either over- or under-predicted by the model. To find out which, compare the Omission and Commission. If Omission is larger, the class is under-predicted, and vice-versa. That is, the model does not "find" this class as much as the reference map suggests.
+
+In this comparison for the `r dt[7, "Category"]` pH class, only `r dt[7, "Agreement"]` out of a total `r sum(dt[7, 2:4])` pixels in this class on the reference map are correctly classified in the test map.
+
+
+The Omission and Commission errors for this class are `r dt[7, "Omission"]` and `r dt[7, "Comission"]`, respectively, so there is more omission than commission. So this class is under-predicted by SoilGrids, taking gNATSGO as the reference.
+For the low-pH classes SoilGrids consistently over-predicts, by this class it consistently under-predicts.
+
+There is quantity difference of `r dt[7, "Quantity"]`, an exchange (same classes, wrong places, balanced) of `r dt[7, "Exchange"]`, leaving a very large number of wrong classes `r dt[7, "Shift"]` not accounted for by either of these.
+
+Notice that for the entire map the errors of Omission and Commission must balance: omission in one class will result commission in some other class.
+
+Graphically, for all classes in the two maps:
+
+```{r}
+#| label: components-plot
+#| fig-width: 4
+#| fig-height: 6
+#| out-width: "60%"
+overallComponentsPlot(ctmatrix = ccm, units = "pixels")
+```
+
+This does not show any spatial pattern, but does show class disagreement. We now look at a matrix that reveals adjaceny of the classes.
+
+Note: The cross-classification can be applied directly to continuously-valued maps, but in this case it converts numeric values to integers that are taken to represent a class. This is a quick way to get equal-interval classes. Whether these are meaningful for your application is a separate question.
+
+```{r}
+#| label: crosstab-continuous
+# whole pH units
+print(ccm.c <- crosstabm(sg.utm, gn.utm))
+diffTablej(ccm.c)
+# to one decimal pH unit
+# show the first four reference classes
+print((ccm.c10 <- crosstabm(sg.utm*10, gn.utm*10))[1:5, ])
+diffTablej(ccm.c10)[1:5, ]
+```
 
 ## Co-occurrence matrices {#sec-coma}
 
