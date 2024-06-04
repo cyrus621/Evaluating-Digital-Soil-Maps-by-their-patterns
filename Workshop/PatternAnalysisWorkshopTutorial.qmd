@@ -1,8 +1,7 @@
 ---
 title: |
-  | Workshop
+  | Tutorial
   | Pattern Analysis for Evaluating Soil Maps
-  | Pedometrics 2024, Las Cruces NM (USA)
 author:
   - name: D G Rossiter
     orcid: 0000-0003-4558-1286
@@ -15,7 +14,7 @@ author:
       - name: Section of Soil & Crop Sciences, Cornell University
         city: Ithaca
         state: NY (USA)
-date: 04-February-2024
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
 license: "CC-BY"
 bibliography: patterns.bib
 link-citations: true
@@ -572,6 +571,78 @@ These are both very far from the random value $-0.041\bar{6}$. Both maps show ho
 Q: Is the pattern of local autocorrelation the same across the map?
 
 Q: Which map has larger differences?
+
+## Grey Level Co-occurrence Matrix (GLCM)
+
+The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, either original or normalized to some scale. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows often different combinations of values ("grey levels") occur over the map.
+Many statistics can then be computed to characterize this matrix.
+See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures.
+
+The GLCM is constructed from a moving-window analysis of a window of the map considered as a matrix of grid cells. However, before analysis the original map is quantized into a fixed number of levels.
+This is because we want to avoid having many 0 matrix entries. The idea is that the GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals or by histogram equalization, and replacing the original values with the integer level number. The former seems preferable.
+
+For the SoilGrid map most values are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO -- in that case due to the reprojection by bilinear interpolation. So quantization makes sense. 
+
+```{r}
+dim(unique(sg.utm))[1]
+prod(dim(sg.utm))
+dim(unique(gn.utm))[1]
+prod(dim(gn.utm))
+```
+
+For example, to quantize the SoilGrids map into 32 levels (although this will be done automatically by the `glcm` function, see below):
+
+```{r cut.matrix}
+sg.quant <- cut(values(sg.utm), breaks = 32, labels = 0:31, include.lowest = TRUE)
+table(sg.quant)
+sg.utm.quant <- sg.utm
+values(sg.utm.quant) <- sg.quant
+plot(sg.utm.quant, col = rainbow(32))
+```
+
+
+
+From this quantized matrix, the GLCM can be constructed for each specified offset, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
+
+If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.
+
+So, the GLCM describes the spatial relationships of (quantized) values in the map; this can be considered "texture". Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM. 
+
+The R `glcm` package computes these metrics. It requires an object in the older `raster` package format. These must be perfectly rectangular.
+
+```{r glcm}
+require(glcm)
+# convert to the older `raster` format
+sg.utm.raster <- raster(sg.utm)
+gn.utm.raster <- raster(gn.utm)
+```
+
+We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used.
+
+We choose to compute om a 4 x 4 window. Since the resolution is already coarse (250 m) this will characterize the texture in $1 ~ \mathrm{km}^2$ squares
+
+```{r measures}
+stat.list <- c("mean","variance","homogeneity","contrast",
+               "entropy","dissimilarity","second_moment",
+               "correlation")
+glcm.sg <- glcm(sg.utm.raster,
+                   window = c(4, 4),
+                   n_grey = 32, # number of levels in the GLCM
+                   shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
+                   na_opt = "ignore",
+                   statistics = stat.list)
+# gNATSGO is not perfectly square
+glcm.gn <- glcm(gn.utm.raster,
+                   window = c(4, 4),
+                   n_grey = 32, # number of levels in the GLCM
+                   shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
+                   na_val = 0,
+                   statistics = stat.list)
+class(glcm.sg)
+summary(glcm.sg)
+summary(glcm.gn)
+plot(glcm.sg)
+```
 
 # Characterizing patterns -- Classified {#sec-classified}
 
