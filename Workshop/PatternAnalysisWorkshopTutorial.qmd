@@ -578,6 +578,8 @@ The idea of characterizing the texture of an image has a long history in image p
 Many statistics can then be computed to characterize this matrix.
 See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures.
 
+### Quantization
+
 The GLCM is constructed from a moving-window analysis of a window of the map considered as a matrix of grid cells. However, before analysis the original map is quantized into a fixed number of levels.
 This is because we want to avoid having many 0 matrix entries. The idea is that the GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals or by histogram equalization, and replacing the original values with the integer level number. The former seems preferable.
 
@@ -600,7 +602,7 @@ values(sg.utm.quant) <- sg.quant
 plot(sg.utm.quant, col = rainbow(32))
 ```
 
-
+### Computation
 
 From this quantized matrix, the GLCM can be constructed for each specified offset, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
 
@@ -619,30 +621,70 @@ gn.utm.raster <- raster(gn.utm)
 
 We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used.
 
-We choose to compute om a 4 x 4 window. Since the resolution is already coarse (250 m) this will characterize the texture in $1 ~ \mathrm{km}^2$ squares
+We choose to compute on a 5 x 5 window (note: both dimensions must be odd). Since the resolution is already coarse (250 m) this will characterize the texture in $1.5625 ~ \mathrm{km}^2$ squares
 
 ```{r measures}
 stat.list <- c("mean","variance","homogeneity","contrast",
                "entropy","dissimilarity","second_moment",
                "correlation")
-glcm.sg <- glcm(sg.utm.raster,
-                   window = c(4, 4),
+glcm.sg <- rast(glcm(sg.utm.raster,
+                   window = c(5, 5),
                    n_grey = 32, # number of levels in the GLCM
                    shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
                    na_opt = "ignore",
-                   statistics = stat.list)
+                   statistics = stat.list))
 # gNATSGO is not perfectly square
-glcm.gn <- glcm(gn.utm.raster,
-                   window = c(4, 4),
+glcm.gn <- rast(glcm(gn.utm.raster,
+                   window = c(5, 5),
                    n_grey = 32, # number of levels in the GLCM
                    shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
-                   na_val = 0,
-                   statistics = stat.list)
+                   na_opt = "ignore",
+                   statistics = stat.list))
 class(glcm.sg)
 summary(glcm.sg)
 summary(glcm.gn)
+summary(glcm.sg-glcm.gn)
 plot(glcm.sg)
+plot(glcm.gn)
 ```
+
+### Interpretation
+
+Each of the texture metrics quantifies some aspect of the texture.
+
+**Contrast** is the amount of local variation in a window. It emphasizes the off-diagonals of the GLCM.
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - j)^2$$
+
+where $P_{i,j}$ is the proportion of the class $i$ and $j$ co-occurrence in the window.
+
+```{r fig.caption = "GLCM contrast, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_contrast"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_contrast"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_contrast"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(sp::bpy.colors(32)))
+plot(glcm.gn[["glcm_contrast"]], main = "gNATSGO", 
+     range = zlim, col=(sp::bpy.colors(32)))
+par(mfrow=c(1,1))
+```
+
+We see that SoilGrids has very little contrast across most of the map, whereas gNATSGO has stronger contrasts.
+
+A variant is the **dissimilarity**, where the weights are linear away from the diagonal, rather than quadratic:
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot |i - j|$$
+```{r fig.caption = "GLCM dissimilarity, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_dissimilarity"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_dissimilarity"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_dissimilarity"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(sp::bpy.colors(32)))
+plot(glcm.gn[["glcm_dissimilarity"]], main = "gNATSGO", 
+     range = zlim, col=(sp::bpy.colors(32)))
+par(mfrow=c(1,1))
+```
+
 
 # Characterizing patterns -- Classified {#sec-classified}
 
