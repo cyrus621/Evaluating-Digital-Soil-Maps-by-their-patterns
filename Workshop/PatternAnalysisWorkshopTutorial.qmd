@@ -41,7 +41,13 @@ format:
       hyperrefoptions:
         - linktoc=all
         - pdfwindowui
-        - pdfpagemode=FullScreen 
+        - pdfpagemode=FullScreen
+    docx:
+      title: "Tutorial: Pattern Analysis for Evaluating Soil Maps"
+      author: "D G Rossiter (ORCID 0000-0003-4558-1286)"
+      toc: true
+      number-sections: true
+      highlight-style: github
 ---
 
 # Abstract
@@ -138,7 +144,7 @@ file.dir <- path.expand("~/ds_reference/Compare_DSM/")
 
 The output of a DSM prediction can be saved as a GeoTiff [@OGCGeoTIFFStandard2023]. 
 
-Here we provide an example: (1\textdegree x 1\textdegree) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):
+Here we provide an example: (1^\circ x 1^\circ) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):
 
 (1) predictive map produced by the SoilGrids v2.0 project [@Poggio.etal2021a];
 (2) a rasterized gNATSGO [@nrcssoilsGriddedNationalSoil2023] coverage of the same area, downscaled to match the SoilGrids v2.0 resolution.
@@ -192,7 +198,7 @@ Q: Describe the principal differences between the two maps.
 
 ### Crop to a smaller area
 
-For quicker computation, we restrict the maps (1\textdegree x 1\textdegree) to a quarter-map (0.25\textdegree x 0.25\textdegree), centred to show some interesting patterns.
+For quicker computation, we restrict the maps ($1^\circ$ x 1^\circ) to a quarter-map (0.25^\circ x 0.25^\circ), centred to show some interesting patterns.
 
 Task: Crop the two maps to a quarter-map.
 
@@ -238,7 +244,7 @@ Q: Will the obvious difference in values affect the analysis of their patterns?
 
 ### Transform to a metric CRS
 
-Landscape metrics require approximately *equal-area* grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6\textdegree-wide latitude range.
+Landscape metrics require approximately *equal-area* grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6^\circ-wide latitude range.
 
 Task: Search for the appropriate EPSG code at the [EPSG Geodetic Parameter Dataset](https://epsg.org), see (@fig-epsg).
 
@@ -511,9 +517,9 @@ Moran's I is defined as:
 
 $$  I = \frac{n}{\sum_i \sum_j w_{ij}} \frac{\sum_i \sum_j w_{ij}(y_i - \bar{y})(y_j - \bar{y})}{\sum_i (y_i - \bar{y})^2}$$
 
-where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial \textbf{weight} of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5~x~5 neighbourhood the expected value if random is $-1/24 = -0.041\bar{6} \approx 0$.
+where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial **weight** of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5~x~5 neighbourhood the expected value if random is $-1/24 = -0.041\bar{6} \approx 0$.
 
-The second term numerator is the weighted covariance; its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
+The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
 
 Task: Construct a weights matrix for local Moran's I
 
@@ -574,20 +580,21 @@ Q: Which map has larger differences?
 
 ## Grey Level Co-occurrence Matrix (GLCM) {#sec-glcm}
 
-The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows often different combinations of values ("grey levels") occur over the map.
-Many statistics can then be computed to characterize this matrix.
+The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). One method for this is the **Grey Level Co-occurrence Matrix**. The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values ("grey levels") occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. in Many statistics can then be computed to characterize this matrix.
 
-Thus GLCM statistics, in the context of DSM, show the local properties of a windows as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
+Thus GLCM statistics, in the context of DSM, show the **local** statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
 
-See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures.
+See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures in the context of land cover classification.
 
 ### Quantization {#sec-glcm-quant}
 
 The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells. 
 
-Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
+Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
 
-For the SoilGrid map most values are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO -- in that case due to the reprojection by bilinear interpolation. So quantization makes sense. 
+The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. 
+
+For the SoilGrid map most values are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO, due to the reprojection by bilinear interpolation. So quantization is required. 
 
 ```{r}
 dim(unique(sg.utm))[1]
@@ -607,11 +614,11 @@ sg.utm.quant <- sg.utm; values(sg.utm.quant) <- sg.quant
 plot(sg.utm.quant, col = rainbow(32))
 ```
 
-The lowest quantiles (lowest pH values) are on the hills to the east of the maop, the highest quantiles (highest pH values) in the stream valleys to the west.
+The lowest quantiles (lowest pH values) are on the hills to the east of the map, the highest quantiles (highest pH values) in the stream valleys to the west.
 
 ### Computation {#sec-glcm-comp}
 
-From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
+From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a **shift**. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
 
 If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.
 
@@ -1175,7 +1182,7 @@ Careful examination reveals that the cluster in the NW corner corresponds to an 
 
 ## Landscape metrics {#sec-lsm}
 
-Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the \texttt{landscapemetrics} package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
+Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the `landscapemetrics` package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
 
 [^2]: https://r-spatialecology.github.io/landscapemetrics/
 
@@ -1606,7 +1613,7 @@ Clearly, products can only be compared at the same resolution. A finer-scale pro
 
 What happens to the landscape metrics as the resolution changes? Let's examine one map from the most detailed soil survey, gSSURGO.
 
-The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24K, with Minimum Legible Area (MLA) 0.576--2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12 -- 24x24 cells.  The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30 k design scale.
+The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24k, with Minimum Legible Area (MLA) 0.576--2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12--24x24 m cells.  The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30k design scale.
 
 In a previous section  (@sec-import-gssurgo) we imported a gSSURGO polygon map.
 
@@ -2010,7 +2017,8 @@ Compare the *landscape-level* metrics at 20 m resolution for the generalized and
 
 ```{r}
 #| label: metrics.20.landscape.genereal
-ls.metrics <- ls.metrics.gn.20.g <- calculate_lsm(gn.20.g, what=lst)[, c("metric", "value")]
+ls.metrics <- ls.metrics.gn.20.g <- 
+  calculate_lsm(gn.20.g, what=lst)[, c("metric", "value")]
 ls.metrics$detailed <- ls.metrics.gn20$value
 names(ls.metrics) <- c("metric", "generalized", "detailed")
 print(ls.metrics)
@@ -2038,7 +2046,9 @@ Compare at the *patch level*:
 #| label: metrics.20.patch.area.general
 # each patch
 head(sort(area.20.g <-  
-            calculate_lsm(gn.20.g, what="lsm_p_area")$value, decreasing = TRUE))
+            calculate_lsm(gn.20.g, 
+                          what="lsm_p_area")$value, 
+          decreasing = TRUE))
 quantile(area.20.g , seq(0,1,by=.12))
 quantile(area.20 , seq(0,1,by=.12))
 ```
@@ -2049,7 +2059,8 @@ Core areas:
 
 ```{r}
 #| label: cores-general
-ncore.g <- calculate_lsm(gn.20.g, what="lsm_p_ncore")
+ncore.g <- calculate_lsm(gn.20.g, 
+                         what="lsm_p_ncore")
 ncore.g.summary <- ncore.g %>% group_by(class) %>%
   summarize(max_cores = max(value)) %>%
   arrange(class)

@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="D G Rossiter">
-<meta name="dcterms.date" content="2024-06-06">
+<meta name="dcterms.date" content="2024-06-07">
 
-<title>quarto-inputdd1e943c</title>
+<title>quarto-input01f349c0</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -201,7 +201,7 @@ div.csl-indent {
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">13</span> References</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="PatternAnalysisWorkshopTutorial.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="PatternAnalysisWorkshopTutorial.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li><li><a href="PatternAnalysisWorkshopTutorial.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -235,7 +235,7 @@ Pattern Analysis for Evaluating Soil Maps</p></h1>
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 6, 2024</p>
+      <p class="date">June 7, 2024</p>
     </div>
   </div>
   
@@ -336,7 +336,7 @@ Pattern Analysis for Evaluating Soil Maps</p></h1>
 <section id="example-dataset-soil-properties" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="example-dataset-soil-properties"><span class="header-section-number">3.3</span> Example dataset: soil properties</h2>
 <p>The output of a DSM prediction can be saved as a GeoTiff <span class="citation" data-cites="OGCGeoTIFFStandard2023">(<a href="#ref-OGCGeoTIFFStandard2023" role="doc-biblioref">Open Geospatial Consortium, 2023</a>)</span>.</p>
-<p>Here we provide an example: (1x 1) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):</p>
+<p>Here we provide an example: (1^x 1^) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):</p>
 <ol type="1">
 <li>predictive map produced by the SoilGrids v2.0 project <span class="citation" data-cites="Poggio.etal2021a">(<a href="#ref-Poggio.etal2021a" role="doc-biblioref">Poggio et al., 2021</a>)</span>;</li>
 <li>a rasterized gNATSGO <span class="citation" data-cites="nrcssoilsGriddedNationalSoil2023">(<a href="#ref-nrcssoilsGriddedNationalSoil2023" role="doc-biblioref">NRCS Soils, 2023</a>)</span> coverage of the same area, downscaled to match the SoilGrids v2.0 resolution.</li>
@@ -401,7 +401,7 @@ max value   :         71.58004 </code></pre>
 <p>Q: Describe the principal differences between the two maps.</p>
 <section id="crop-to-a-smaller-area" class="level3" data-number="3.3.1">
 <h3 data-number="3.3.1" class="anchored" data-anchor-id="crop-to-a-smaller-area"><span class="header-section-number">3.3.1</span> Crop to a smaller area</h3>
-<p>For quicker computation, we restrict the maps (1x 1) to a quarter-map (0.25x 0.25), centred to show some interesting patterns.</p>
+<p>For quicker computation, we restrict the maps (<span class="math inline">\(1^\circ\)</span> x 1^) to a quarter-map (0.25^x 0.25^), centred to show some interesting patterns.</p>
 <p>Task: Crop the two maps to a quarter-map.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>test.tile.size <span class="ot">&lt;-</span> <span class="fl">0.25</span>  <span class="co"># degrees</span></span>
@@ -455,7 +455,7 @@ max value   :         71.58004 </code></pre>
 </section>
 <section id="transform-to-a-metric-crs" class="level3" data-number="3.3.2">
 <h3 data-number="3.3.2" class="anchored" data-anchor-id="transform-to-a-metric-crs"><span class="header-section-number">3.3.2</span> Transform to a metric CRS</h3>
-<p>Landscape metrics require approximately <em>equal-area</em> grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6-wide latitude range.</p>
+<p>Landscape metrics require approximately <em>equal-area</em> grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6^-wide latitude range.</p>
 <p>Task: Search for the appropriate EPSG code at the <a href="https://epsg.org">EPSG Geodetic Parameter Dataset</a>, see (<a href="#fig-epsg">Figure&nbsp;3</a>).</p>
 <div id="fig-epsg" class="quarto-figure quarto-figure-center anchored">
 <figure class="figure">
@@ -587,7 +587,7 @@ max value   :         71.58004 </code></pre>
 <span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  2.268   0.174  24.380 </code></pre>
+  2.340   0.289  18.992 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(mu.poly)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -614,7 +614,7 @@ attr(,"package")
 
 <div data-pagedtable="false">
   <script data-pagedtable-source="" type="application/json">
-{"columns":[{"label":["mukey"],"name":[1],"type":["int"],"align":["right"]},{"label":["area_ac"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"2760838","2":"18.743244"},{"1":"2723074","2":"2.178377"},{"1":"2760838","2":"21.792197"},{"1":"2760838","2":"11.507169"},{"1":"2760838","2":"10.010279"},{"1":"2760838","2":"15.911327"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+{"columns":[{"label":["mukey"],"name":[1],"type":["int"],"align":["right"]},{"label":["area_ac"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"2723081","2":"1.846781"},{"1":"2723081","2":"4.124984"},{"1":"2723081","2":"19.108964"},{"1":"2723081","2":"7.223155"},{"1":"2723081","2":"1.576274"},{"1":"2723081","2":"6.984551"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
   </script>
 </div>
 </div>
@@ -802,8 +802,8 @@ attr(,"package")
 <p>A quick way to see the local degree of autocorrelation is with Moran’s I applied to a window of appropriate size around each grid cell, using the <code>terra::autocor</code> function.</p>
 <p>Moran’s I is defined as:</p>
 <p><span class="math display">\[  I = \frac{n}{\sum_i \sum_j w_{ij}} \frac{\sum_i \sum_j w_{ij}(y_i - \bar{y})(y_j - \bar{y})}{\sum_i (y_i - \bar{y})^2}\]</span></p>
-<p>where <span class="math inline">\(y_i\)</span> is the value of the variable in the <span class="math inline">\(i\)</span>th of <span class="math inline">\(n\)</span> neighbouring grid cells, <span class="math inline">\(\bar{y}\)</span> is the global mean of the variable, <span class="math inline">\(w_{ij}\)</span> is the spatial of the link between the target cell <span class="math inline">\(i\)</span> and its neighbour cell <span class="math inline">\(j\)</span>. The expected value of Moran’s I is <span class="math inline">\(-1/(n-1)\)</span> if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5<sub>x</sub>5 neighbourhood the expected value if random is <span class="math inline">\(-1/24 = -0.041\bar{6} \approx 0\)</span>.</p>
-<p>The second term numerator is the weighted covariance; its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.</p>
+<p>where <span class="math inline">\(y_i\)</span> is the value of the variable in the <span class="math inline">\(i\)</span>th of <span class="math inline">\(n\)</span> neighbouring grid cells, <span class="math inline">\(\bar{y}\)</span> is the global mean of the variable, <span class="math inline">\(w_{ij}\)</span> is the spatial <strong>weight</strong> of the link between the target cell <span class="math inline">\(i\)</span> and its neighbour cell <span class="math inline">\(j\)</span>. The expected value of Moran’s I is <span class="math inline">\(-1/(n-1)\)</span> if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5<sub>x</sub>5 neighbourhood the expected value if random is <span class="math inline">\(-1/24 = -0.041\bar{6} \approx 0\)</span>.</p>
+<p>The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.</p>
 <p>Task: Construct a weights matrix for local Moran’s I</p>
 <p>We determine the weights matrix for Moran’s I from the global variogram analysis and the grid cell size.</p>
 <div class="cell">
@@ -886,14 +886,15 @@ attr(,"package")
 </section>
 <section id="sec-glcm" class="level2" data-number="5.3">
 <h2 data-number="5.3" class="anchored" data-anchor-id="sec-glcm"><span class="header-section-number">5.3</span> Grey Level Co-occurrence Matrix (GLCM)</h2>
-<p>The idea of characterizing the texture of an image has a long history in image processing (e.g., <span class="citation" data-cites="haralickTexturalFeaturesImage1973">Haralick et al. (<a href="#ref-haralickTexturalFeaturesImage1973" role="doc-biblioref">1973</a>)</span>). The “grey levels” (GL) refer to pixel values – in our context, the values of the soil property, typically quantized (sliced) to some precision. The “co-occurrence” (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows often different combinations of values (“grey levels”) occur over the map. Many statistics can then be computed to characterize this matrix.</p>
-<p>Thus GLCM statistics, in the context of DSM, show the local properties of a windows as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.</p>
-<p>See <span class="citation" data-cites="hall-beyerGLCMTextureTutorial2017">Hall-Beyer (<a href="#ref-hall-beyerGLCMTextureTutorial2017" role="doc-biblioref">2017a</a>)</span> for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and <span class="citation" data-cites="hall-beyerPracticalGuidelinesChoosing2017">Hall-Beyer (<a href="#ref-hall-beyerPracticalGuidelinesChoosing2017" role="doc-biblioref">2017b</a>)</span> for guidelines on choosing appropriate GLCM-based textures.</p>
+<p>The idea of characterizing the texture of an image has a long history in image processing (e.g., <span class="citation" data-cites="haralickTexturalFeaturesImage1973">Haralick et al. (<a href="#ref-haralickTexturalFeaturesImage1973" role="doc-biblioref">1973</a>)</span>). One method for this is the <strong>Grey Level Co-occurrence Matrix</strong>. The “grey levels” (GL) refer to pixel values – in our context, the values of the soil property, typically quantized (sliced) to some precision. The “co-occurrence” (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values (“grey levels”) occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. in Many statistics can then be computed to characterize this matrix.</p>
+<p>Thus GLCM statistics, in the context of DSM, show the <strong>local</strong> statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.</p>
+<p>See <span class="citation" data-cites="hall-beyerGLCMTextureTutorial2017">Hall-Beyer (<a href="#ref-hall-beyerGLCMTextureTutorial2017" role="doc-biblioref">2017a</a>)</span> for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and <span class="citation" data-cites="hall-beyerPracticalGuidelinesChoosing2017">Hall-Beyer (<a href="#ref-hall-beyerPracticalGuidelinesChoosing2017" role="doc-biblioref">2017b</a>)</span> for guidelines on choosing appropriate GLCM-based textures in the context of land cover classification.</p>
 <section id="sec-glcm-quant" class="level3" data-number="5.3.1">
 <h3 data-number="5.3.1" class="anchored" data-anchor-id="sec-glcm-quant"><span class="header-section-number">5.3.1</span> Quantization</h3>
 <p>The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells.</p>
-<p>Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.</p>
-<p>For the SoilGrid map most values are different, in fact in this example there are 8937 different values, not many fewer than the pixel count, 9408. The same is true for gNATSGO – in that case due to the reprojection by bilinear interpolation. So quantization makes sense.</p>
+<p>Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.</p>
+<p>The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur.</p>
+<p>For the SoilGrid map most values are different, in fact in this example there are 8937 different values, not many fewer than the pixel count, 9408. The same is true for gNATSGO, due to the reprojection by bilinear interpolation. So quantization is required.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(<span class="fu">unique</span>(sg.utm))[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -933,11 +934,11 @@ attr(,"package")
 <p><img src="PatternAnalysisWorkshopTutorial_files/figure-html/cut.matrix-1.png" class="img-fluid" width="1152"></p>
 </div>
 </div>
-<p>The lowest quantiles (lowest pH values) are on the hills to the east of the maop, the highest quantiles (highest pH values) in the stream valleys to the west.</p>
+<p>The lowest quantiles (lowest pH values) are on the hills to the east of the map, the highest quantiles (highest pH values) in the stream valleys to the west.</p>
 </section>
 <section id="sec-glcm-comp" class="level3" data-number="5.3.2">
 <h3 data-number="5.3.2" class="anchored" data-anchor-id="sec-glcm-comp"><span class="header-section-number">5.3.2</span> Computation</h3>
-<p>From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position <span class="math inline">\((i,j)\)</span> in the GLCM counts how many times a pixel with value <span class="math inline">\(i\)</span> and a value <span class="math inline">\(j\)</span> occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.</p>
+<p>From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a <strong>shift</strong>. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position <span class="math inline">\((i,j)\)</span> in the GLCM counts how many times a pixel with value <span class="math inline">\(i\)</span> and a value <span class="math inline">\(j\)</span> occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.</p>
 <p>If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.</p>
 <p>The GLCM describes the spatial relationships of (quantized) values in the map; this can be considered “texture”. Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM.</p>
 <p>The R <code>glcm</code> package computes these metrics. It requires an object in the older <code>raster</code> package format.</p>
@@ -1041,7 +1042,7 @@ attr(,"package")
 </section>
 <section id="sec-glcm-interp" class="level3" data-number="5.3.3">
 <h3 data-number="5.3.3" class="anchored" data-anchor-id="sec-glcm-interp"><span class="header-section-number">5.3.3</span> Interpretation</h3>
-<p>Each of the texture metrics quantifies some aspect of the texture. For a thorough explanation see <span class="citation" data-cites="hall-beyerGLCMTextureTutorial2017">Hall-Beyer (<a href="#ref-hall-beyerGLCMTextureTutorial2017" role="doc-biblioref">2017a</a>)</span> and <span class="citation" data-cites="hall-beyerPracticalGuidelinesChoosing2017">Hall-Beyer (<a href="#ref-hall-beyerPracticalGuidelinesChoosing2017" role="doc-biblioref">2017b</a>)</span>. Here we</p>
+<p>Each of the texture metrics quantifies some aspect of the texture. For a thorough explanation see <span class="citation" data-cites="hall-beyerGLCMTextureTutorial2017">Hall-Beyer (<a href="#ref-hall-beyerGLCMTextureTutorial2017" role="doc-biblioref">2017a</a>)</span> and <span class="citation" data-cites="hall-beyerPracticalGuidelinesChoosing2017">Hall-Beyer (<a href="#ref-hall-beyerPracticalGuidelinesChoosing2017" role="doc-biblioref">2017b</a>)</span>. Here we examine a few of them.</p>
 <p><strong>Mean</strong> and <strong>Variance</strong> represent the overall inhomogeneity of the window. The mean is the mean change in the selected shift(s) and the variance is how variable are the changes.</p>
 <p><span class="math display">\[\mu = \sum_{i,j = 0}^{N-1} i \cdot P_{i,j}\]</span></p>
 <div class="cell" data-fig.caption="GLCM mean, 5 x 5 grid cells">
@@ -1673,7 +1674,7 @@ max value   :        752.4755 </code></pre>
 </section>
 <section id="sec-lsm" class="level2" data-number="6.7">
 <h2 data-number="6.7" class="anchored" data-anchor-id="sec-lsm"><span class="header-section-number">6.7</span> Landscape metrics</h2>
-<p>Landscape metrics have a long history of use in landscape ecology <span class="citation" data-cites="Uuemaa.etal2013">(<a href="#ref-Uuemaa.etal2013" role="doc-biblioref">Uuemaa et al., 2013</a>)</span>. A wide variety have been collected in the well-known FRAGSTATS computer program <span class="citation" data-cites="McGarigal.etal2012">(<a href="#ref-McGarigal.etal2012" role="doc-biblioref">McGarigal et al., 2012</a>)</span>. These have been implemented in the R context by the package<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> <span class="citation" data-cites="Hesselbarth.etal2019 Hesselbarth2021">(<a href="#ref-Hesselbarth.etal2019" role="doc-biblioref">Hesselbarth et al., 2019</a>; <a href="#ref-Hesselbarth2021" role="doc-biblioref">Hesselbarth, 2021</a>)</span>. Although the ecological relevance of FRAGSTATS metrics have been criticized <span class="citation" data-cites="Kupfer2012">(<a href="#ref-Kupfer2012" role="doc-biblioref">Kupfer, 2012</a>)</span>, here we use them to <em>characterize spatial patterns of soil properties</em> or <em>classes</em>, not as inputs to landscape ecology models.</p>
+<p>Landscape metrics have a long history of use in landscape ecology <span class="citation" data-cites="Uuemaa.etal2013">(<a href="#ref-Uuemaa.etal2013" role="doc-biblioref">Uuemaa et al., 2013</a>)</span>. A wide variety have been collected in the well-known FRAGSTATS computer program <span class="citation" data-cites="McGarigal.etal2012">(<a href="#ref-McGarigal.etal2012" role="doc-biblioref">McGarigal et al., 2012</a>)</span>. These have been implemented in the R context by the <code>landscapemetrics</code> package<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> <span class="citation" data-cites="Hesselbarth.etal2019 Hesselbarth2021">(<a href="#ref-Hesselbarth.etal2019" role="doc-biblioref">Hesselbarth et al., 2019</a>; <a href="#ref-Hesselbarth2021" role="doc-biblioref">Hesselbarth, 2021</a>)</span>. Although the ecological relevance of FRAGSTATS metrics have been criticized <span class="citation" data-cites="Kupfer2012">(<a href="#ref-Kupfer2012" role="doc-biblioref">Kupfer, 2012</a>)</span>, here we use them to <em>characterize spatial patterns of soil properties</em> or <em>classes</em>, not as inputs to landscape ecology models.</p>
 <p>The patterns of soil classes or properties are not expected to have the same characteristics as those for land cover or vegetation types. Land cover is largely controlled by humans, and where it is not, vegetation is mostly placed on the landscape by different mechanisms than are soils. There is a link, however: if the soil property is largely controlled by the <code>o</code> (organism) or <code>h</code> (human) factor, then the patterns on the landscape could be similar to those under it.</p>
 <p>There are many metrics, of three levels of detail. We list them here for reference; each has its own help text.</p>
 <p>First, the <em>patch-level metrics</em>. These describe every patch, i.e., contiguous cells belonging to the same class.</p>
@@ -2261,7 +2262,7 @@ max value   :        752.4755 </code></pre>
 <p>DSM are produced at a wide range of grid cell sizes (“resolutions”), and it’s obvious that as the grid cell size increases any finer pattern is lost. This is especially true if the map is made with block predictions, rather than point predictions at the centre of grid cells.</p>
 <p>Clearly, products can only be compared at the same resolution. A finer-scale product can be downscaled to the resolution of a coarser-scale product in order to compare them. For maps made at point resolution this should by mean (continuous) or majority filter (classified). For maps made at block resolution this should be by block kriging within the block at fine-scale (continuous) or mode filter (classified).</p>
 <p>What happens to the landscape metrics as the resolution changes? Let’s examine one map from the most detailed soil survey, gSSURGO.</p>
-<p>The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24K, with Minimum Legible Area (MLA) 0.576–2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12 – 24x24 cells. The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30 k design scale.</p>
+<p>The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24k, with Minimum Legible Area (MLA) 0.576–2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12–24x24 m cells. The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30k design scale.</p>
 <p>In a previous section (<a href="#sec-import-gssurgo">Section&nbsp;3.4</a>) we imported a gSSURGO polygon map.</p>
 <p>Unfortunately, the <code>landscapemetrics</code> package can not (yet?) work with <code>terra</code> objects, or vector objects from any package. So to compute landscape metrics for these polygons, they must be rasterized to a resolution where the area and length calculations are sufficiently accurate. The median polygon area is 2.7 ha; the minimum legible area (MLA) at the design scale of the soil surveys in this area (1:20k, see published survey document) is 1.6 ha. At a grid resolution of 16 pixels per MLA this suggests 20 m horizontal resolution pixels.</p>
 <p>Task: Rasterize the polygon map to this resolution.</p>
@@ -3015,10 +3016,11 @@ max value   :        752.4755 </code></pre>
 </div>
 <p>Compare the <em>landscape-level</em> metrics at 20 m resolution for the generalized and detailed maps:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb366"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb366-1"><a href="#cb366-1" aria-hidden="true" tabindex="-1"></a>ls.metrics <span class="ot">&lt;-</span> ls.metrics.gn.<span class="fl">20.</span>g <span class="ot">&lt;-</span> <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, <span class="at">what=</span>lst)[, <span class="fu">c</span>(<span class="st">"metric"</span>, <span class="st">"value"</span>)]</span>
-<span id="cb366-2"><a href="#cb366-2" aria-hidden="true" tabindex="-1"></a>ls.metrics<span class="sc">$</span>detailed <span class="ot">&lt;-</span> ls.metrics.gn20<span class="sc">$</span>value</span>
-<span id="cb366-3"><a href="#cb366-3" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(ls.metrics) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"metric"</span>, <span class="st">"generalized"</span>, <span class="st">"detailed"</span>)</span>
-<span id="cb366-4"><a href="#cb366-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ls.metrics)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb366"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb366-1"><a href="#cb366-1" aria-hidden="true" tabindex="-1"></a>ls.metrics <span class="ot">&lt;-</span> ls.metrics.gn.<span class="fl">20.</span>g <span class="ot">&lt;-</span> </span>
+<span id="cb366-2"><a href="#cb366-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, <span class="at">what=</span>lst)[, <span class="fu">c</span>(<span class="st">"metric"</span>, <span class="st">"value"</span>)]</span>
+<span id="cb366-3"><a href="#cb366-3" aria-hidden="true" tabindex="-1"></a>ls.metrics<span class="sc">$</span>detailed <span class="ot">&lt;-</span> ls.metrics.gn20<span class="sc">$</span>value</span>
+<span id="cb366-4"><a href="#cb366-4" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(ls.metrics) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"metric"</span>, <span class="st">"generalized"</span>, <span class="st">"detailed"</span>)</span>
+<span id="cb366-5"><a href="#cb366-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ls.metrics)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 5 × 3
   metric  generalized detailed
@@ -3066,7 +3068,9 @@ max value   :        752.4755 </code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb376"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb376-1"><a href="#cb376-1" aria-hidden="true" tabindex="-1"></a><span class="co"># each patch</span></span>
 <span id="cb376-2"><a href="#cb376-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">sort</span>(area.<span class="fl">20.</span>g <span class="ot">&lt;-</span>  </span>
-<span id="cb376-3"><a href="#cb376-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, <span class="at">what=</span><span class="st">"lsm_p_area"</span>)<span class="sc">$</span>value, <span class="at">decreasing =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb376-3"><a href="#cb376-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, </span>
+<span id="cb376-4"><a href="#cb376-4" aria-hidden="true" tabindex="-1"></a>                          <span class="at">what=</span><span class="st">"lsm_p_area"</span>)<span class="sc">$</span>value, </span>
+<span id="cb376-5"><a href="#cb376-5" aria-hidden="true" tabindex="-1"></a>          <span class="at">decreasing =</span> <span class="cn">TRUE</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1316.60 1018.40  690.40  648.56  643.08  468.48</code></pre>
 </div>
@@ -3084,11 +3088,12 @@ max value   :        752.4755 </code></pre>
 <p>Many patches increase in size by the aggregation, but about 60% remain at the original size – these were of small classes that did not have multiple map units.</p>
 <p>Core areas:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb382"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb382-1"><a href="#cb382-1" aria-hidden="true" tabindex="-1"></a>ncore.g <span class="ot">&lt;-</span> <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, <span class="at">what=</span><span class="st">"lsm_p_ncore"</span>)</span>
-<span id="cb382-2"><a href="#cb382-2" aria-hidden="true" tabindex="-1"></a>ncore.g.summary <span class="ot">&lt;-</span> ncore.g <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(class) <span class="sc">%&gt;%</span></span>
-<span id="cb382-3"><a href="#cb382-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">max_cores =</span> <span class="fu">max</span>(value)) <span class="sc">%&gt;%</span></span>
-<span id="cb382-4"><a href="#cb382-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(class)</span>
-<span id="cb382-5"><a href="#cb382-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ncore.g.summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb382"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb382-1"><a href="#cb382-1" aria-hidden="true" tabindex="-1"></a>ncore.g <span class="ot">&lt;-</span> <span class="fu">calculate_lsm</span>(gn.<span class="fl">20.</span>g, </span>
+<span id="cb382-2"><a href="#cb382-2" aria-hidden="true" tabindex="-1"></a>                         <span class="at">what=</span><span class="st">"lsm_p_ncore"</span>)</span>
+<span id="cb382-3"><a href="#cb382-3" aria-hidden="true" tabindex="-1"></a>ncore.g.summary <span class="ot">&lt;-</span> ncore.g <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(class) <span class="sc">%&gt;%</span></span>
+<span id="cb382-4"><a href="#cb382-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">max_cores =</span> <span class="fu">max</span>(value)) <span class="sc">%&gt;%</span></span>
+<span id="cb382-5"><a href="#cb382-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(class)</span>
+<span id="cb382-6"><a href="#cb382-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ncore.g.summary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 77 × 2
     class max_cores
