@@ -413,7 +413,7 @@ The methods to characterize patterns are different for maps of *continuous* vari
 
 These are methods that require continuous values on at least an interval scale, and usually a ratio scale (with a true zero). In the case of the example here, pH does not have a true zero, so it is an interval scale. Other properties such as soil thickness to a restricting layer have a true zero, and one can speak of one location being "twice as thick" than another, for example.
 
-## The global variogram
+## The global variogram {#sec-vgm}
 
 The variogram (or a correlogram) can be used to characterize the degree of spatial continuity and the "roughness" of a continuous property map, averaged across the entire map. Note that this depends on the grid cell size in two ways:
 
@@ -572,16 +572,20 @@ Q: Is the pattern of local autocorrelation the same across the map?
 
 Q: Which map has larger differences?
 
-## Grey Level Co-occurrence Matrix (GLCM)
+## Grey Level Co-occurrence Matrix (GLCM) {#sec-glcm}
 
-The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, either original or normalized to some scale. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows often different combinations of values ("grey levels") occur over the map.
+The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows often different combinations of values ("grey levels") occur over the map.
 Many statistics can then be computed to characterize this matrix.
-See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures.
 
-### Quantization
+Thus GLCM statistics, in the context of DSM, show the local properties of a windows as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
 
-The GLCM is constructed from a moving-window analysis of a window of the map considered as a matrix of grid cells. However, before analysis the original map is quantized into a fixed number of levels.
-This is because we want to avoid having many 0 matrix entries. The idea is that the GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals or by histogram equalization, and replacing the original values with the integer level number. The former seems preferable.
+See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures.
+
+### Quantization {#sec-glcm-quant}
+
+The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells. 
+
+Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
 
 For the SoilGrid map most values are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO -- in that case due to the reprojection by bilinear interpolation. So quantization makes sense. 
 
@@ -592,25 +596,28 @@ dim(unique(gn.utm))[1]
 prod(dim(gn.utm))
 ```
 
-For example, to quantize the SoilGrids map into 32 levels (although this will be done automatically by the `glcm` function, see below):
+The following code shows how to quantize the SoilGrids map into 32 levels.
+(This will be done automatically by the `glcm` function, see below.)
 
 ```{r cut.matrix}
+range(values(sg.utm, na.rm = TRUE))
 sg.quant <- cut(values(sg.utm), breaks = 32, labels = 0:31, include.lowest = TRUE)
 table(sg.quant)
-sg.utm.quant <- sg.utm
-values(sg.utm.quant) <- sg.quant
+sg.utm.quant <- sg.utm; values(sg.utm.quant) <- sg.quant
 plot(sg.utm.quant, col = rainbow(32))
 ```
 
-### Computation
+The lowest quantiles (lowest pH values) are on the hills to the east of the maop, the highest quantiles (highest pH values) in the stream valleys to the west.
 
-From this quantized matrix, the GLCM can be constructed for each specified offset, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
+### Computation {#sec-glcm-comp}
+
+From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a shift. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
 
 If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.
 
-So, the GLCM describes the spatial relationships of (quantized) values in the map; this can be considered "texture". Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM. 
+The GLCM describes the spatial relationships of (quantized) values in the map; this can be considered "texture". Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM. 
 
-The R `glcm` package computes these metrics. It requires an object in the older `raster` package format. These must be perfectly rectangular.
+The R `glcm` package computes these metrics. It requires an object in the older `raster` package format.
 
 ```{r glcm}
 require(glcm)
@@ -619,9 +626,9 @@ sg.utm.raster <- raster(sg.utm)
 gn.utm.raster <- raster(gn.utm)
 ```
 
-We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used.
+We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used to characterize the shifts in that orientation.
 
-We choose to compute on a 5 x 5 window (note: both dimensions must be odd). Since the resolution is already coarse (250 m) this will characterize the texture in $1.5625 ~ \mathrm{km}^2$ squares
+We choose to compute on a 5 x 5 window (both dimensions must be odd). Since the resolution is already coarse (250 m) this will characterize the texture in $1.5625 ~ \mathrm{km}^2$ squares
 
 ```{r measures}
 stat.list <- c("mean","variance","homogeneity","contrast",
@@ -648,13 +655,45 @@ plot(glcm.sg)
 plot(glcm.gn)
 ```
 
-### Interpretation
+### Interpretation {#sec-glcm-interp}
 
-Each of the texture metrics quantifies some aspect of the texture.
+Each of the texture metrics quantifies some aspect of the texture. For a thorough explanation see @hall-beyerGLCMTextureTutorial2017 and @hall-beyerPracticalGuidelinesChoosing2017. Here we examine a few of them.
 
-**Contrast** is the amount of local variation in a window. It emphasizes the off-diagonals of the GLCM.
+**Mean** and **Variance** represent the overall inhomogeneity of the window. The mean is the mean change in the selected shift(s) and the variance is how variable are the changes.
+
+$$\mu = \sum_{i,j = 0}^{N-1} i \cdot P_{i,j}$$
+```{r fig.caption = "GLCM mean, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_mean"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_mean"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_mean"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(sp::bpy.colors(32)))
+plot(glcm.gn[["glcm_mean"]], main = "gNATSGO", 
+     range = zlim, col=(sp::bpy.colors(32)))
+par(mfrow=c(1,1))
+```
+
+Areas with the higher values have more and/or larger differences between neighbours. 
+
+$$\sigma^2 = \sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - \mu)^2$$
+
+```{r fig.caption = "GLCM variance, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_variance"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_variance"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_variance"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(cm.colors(32)))
+plot(glcm.gn[["glcm_variance"]], main = "gNATSGO", 
+     range = zlim, col=(cm.colors(32)))
+par(mfrow=c(1,1))
+```
+
+Im this case the SoilGrids map has more dispersion in the types of changes.
+
+**Contrast** is the amount of local variation in a window, with emphasis (squared distance) on the off-diagonals of the GLCM, i.e., larger changes in the quanta level.
 
 $$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - j)^2$$
+
 
 where $P_{i,j}$ is the proportion of the class $i$ and $j$ co-occurrence in the window.
 
@@ -663,13 +702,13 @@ zlim <- range(range(values(glcm.sg[["glcm_contrast"]]), na.rm = TRUE),
                      range(values(glcm.gn[["glcm_contrast"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
 plot(glcm.sg[["glcm_contrast"]], main = "SoilGrids v2.0", 
-     range = zlim, col=(sp::bpy.colors(32)))
+     range = zlim, col=(topo.colors(32)))
 plot(glcm.gn[["glcm_contrast"]], main = "gNATSGO", 
-     range = zlim, col=(sp::bpy.colors(32)))
+     range = zlim, col=(topo.colors(32)))
 par(mfrow=c(1,1))
 ```
 
-We see that SoilGrids has very little contrast across most of the map, whereas gNATSGO has stronger contrasts.
+We see that SoilGrids has very little contrast across most of the map, whereas gNATSGO has stronger contrasts. Both have "hot spots" of high contrast, i.e., areas in the map with a relatively wide range of pH values. Note that this shows that the assumption of second-order stationarity used in the variogram analysis @sec-vgm is definitely not correct. 
 
 A variant is the **dissimilarity**, where the weights are linear away from the diagonal, rather than quadratic:
 
@@ -679,12 +718,29 @@ zlim <- range(range(values(glcm.sg[["glcm_dissimilarity"]]), na.rm = TRUE),
                      range(values(glcm.gn[["glcm_dissimilarity"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
 plot(glcm.sg[["glcm_dissimilarity"]], main = "SoilGrids v2.0", 
-     range = zlim, col=(sp::bpy.colors(32)))
+     range = zlim, col=(topo.colors(32)))
 plot(glcm.gn[["glcm_dissimilarity"]], main = "gNATSGO", 
-     range = zlim, col=(sp::bpy.colors(32)))
+     range = zlim, col=(topo.colors(32)))
 par(mfrow=c(1,1))
 ```
 
+**Entropy** is a measure of information within a window. It accounts for the number of different levels in the window (the others will have "probability" zero) and their relative frequencies. More classes and more even distribution of classes results in increased entropy. This can be thought of as "lack of information".
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot -\ln(P_{i,j})$$
+```{r fig.caption = "GLCM entropy, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_entropy"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_entropy"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_entropy"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(topo.colors(32)))
+plot(glcm.gn[["glcm_entropy"]], main = "gNATSGO", 
+     range = zlim, col=(topo.colors(32)))
+par(mfrow=c(1,1))
+```
+
+In this case there is quite low entropy in some of the hilly areas of the SoilGrids maps. Most windows of the gNATSGO map have high entropy, at this window size.
+
+Challenge: compute the GLCM statistics for different window sizes.
 
 # Characterizing patterns -- Classified {#sec-classified}
 
