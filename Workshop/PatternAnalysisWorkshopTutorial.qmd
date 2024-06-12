@@ -19,6 +19,9 @@ license: "CC-BY"
 bibliography: patterns.bib
 link-citations: true
 csl: /Users/rossiter/Zotero/styles/apa.csl
+knitr: 
+  opts_chunk: 
+    tidy: FALSE
 format: 
     html:
       fig-align: "center"
@@ -430,9 +433,9 @@ In this section we compute and compare the short-range variograms, these reveal 
 
 Note: Variograms are typically produced separately for each mapped soil property. To characterize an inherent landscape scale, a number of properties can be combined by principal component analysis (PCA) and the first component (PC1) can be characterized.
 
-Task: Convert the `terra::SpatRaster` objects to `raster::raster` and then to `sf:sf` objects in order to compute variograms. 
+Task: Convert the `terra::SpatRaster` objects to `raster::raster` and then to `sf:sf` objects in order to compute variograms. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
 
-Note: There is (so far) no direct conversion. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
+Note: There is (so far) no direct conversion from `terra::SpatRaster` objects to `sf:sf` objects. 
 
 ```{r}
 gn.sp <- as(raster(gn.utm), "SpatialPointsDataFrame")
@@ -478,14 +481,17 @@ Task: Fit a variogram model to the empirical variogram.
 
 The differences can be quantified by the parameters of a fitted variogram model. We try an exponential model because (1) it has the simplest theory, and (2) we expect to not reach a sill within the short range investigated.
 
-We use the `fit.variogram` method to adjust an initial estimate by weighted least squared. The estimated sill is the maximum $\gamma$ in the empirical variogram.
+We use the `fit.variogram` method to adjust an initial estimate by weighted least squares (linear in the number of point-pairs and inverse squared in the separation disatance, i.e., the default `gstat` method 7). The estimated sill is the maximum $\gamma$ in the empirical variogram.
 
 ```{r}
 #| label: variogram_model
-vm.gn <- vgm(0.8*max(v.gn$gamma), "Exp", range.init, 0)
-(vmf.gn <- fit.variogram(v.gn, model=vm.gn))
+vm.gn <- vgm(psill = 0.8*max(v.gn$gamma), 
+             model = "Exp", 
+             range = range.init, 
+             nugget = 0)
+print(vmf.gn <- fit.variogram(v.gn, model=vm.gn))
 vm.sg <- vgm(0.8*max(v.sg$gamma), "Exp", range.init, 0)
-(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
+print(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
 ```
 
 ```{r}
@@ -509,7 +515,10 @@ Q: Is there any way to decide which is "better" in some sense?
 
 ## Moving-window local association
 
-The local spatial structure may not be consistent across the mapped area, so that the average variogram, computed over that area, can be misleading. With so many values (grid cells) it's possible to compute moving-window variograms, as in the VESPER program [@minasnyVESPERVariogramEstimation2005] developed for precision agriculture applications. This will show if the pattern is consistent across the map, and also allow maps to be compared block-by-block. I have not (yet?) implemented this in R, so we will use another method to assess moving-window local spatial association.
+The local spatial structure may not be consistent across the mapped area -- that is, the assumption of second-order stationarity may be (and often is) false.
+This means that the average variogram, computed over that area, is misleading. 
+
+The gridded maps have so manycells that it's possible to compute **moving-window variograms**, as in the VESPER program [@minasnyVESPERVariogramEstimation2005] developed for precision agriculture applications. This will show if the pattern is consistent across the map, and also allow maps to be compared block-by-block. I have not (yet?) implemented this in R, so we must use another method to assess moving-window local spatial association.
 
 A quick way to see the local degree of autocorrelation is with Moran's I applied to a window of appropriate size around each grid cell, using the `terra::autocor` function.
 
@@ -517,28 +526,29 @@ Moran's I is defined as:
 
 $$  I = \frac{n}{\sum_i \sum_j w_{ij}} \frac{\sum_i \sum_j w_{ij}(y_i - \bar{y})(y_j - \bar{y})}{\sum_i (y_i - \bar{y})^2}$$
 
-where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial **weight** of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5~x~5 neighbourhood the expected value if random is $-1/24 = -0.041\bar{6} \approx 0$.
+where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial **weight** of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a $5 \times 5$ neighbourhood the expected value if random is $-1/24 = -0.041\bar{6} \approx 0$.
 
 The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
 
-Task: Construct a weights matrix for local Moran's I
+Task: Construct a weights matrix for local Moran's I, for a $5 \times 5$ grid cell neighbourhood, i.e., up to $\pm \; 500 \; m$ in the N/S directions and $\pm \; 500\times\sqrt{2} \approx 707 \; m$ along the diagonals. 
 
-We determine the weights matrix for Moran's I from the global variogram analysis and the grid cell size.
+We determine the weights matrix for Moran's I from the global variogram analysis and the grid cell size. Weights are the one minus the semivariance at each cell distance, so that the centre pixel receives the maximum weight. 
 
 ```{r}
 #| label: wts-matrix
 # for a 5x5 matrix
 # there must be a more elegant way to do this!
-(vl <- variogramLine(vm.sg, 
-                     dist_vector = c(250, 250*sqrt(2), 
+(vl <- variogramLine(vm.sg,   
+                     dist_vector = c(0,
+                                     250, 250*sqrt(2), 
                                      500, 250*sqrt(5), 
                                      500*sqrt(2))))
-(w.r <- 1/(vl$gamma / vl$gamma[1]))  # relative weights
-(w.m <- matrix(c(w.r[5], w.r[4], w.r[3], w.r[4], w.r[5],
-                w.r[5], w.r[2], w.r[1], w.r[2], w.r[5],
-                w.r[3], w.r[1], 0, w.r[1], w.r[3],
-                w.r[5], w.r[2], w.r[1], w.r[2], w.r[5],
-                w.r[5], w.r[4], w.r[3], w.r[4], w.r[5]), 
+(w.r <- 1- vl$gamma)  # relative weights
+(w.m <- matrix(c(w.r[6], w.r[5], w.r[4], w.r[5], w.r[6],
+                w.r[5], w.r[3], w.r[2], w.r[3], w.r[5],
+                w.r[4], w.r[2], w.r[1], w.r[2], w.r[4],
+                w.r[5], w.r[3], w.r[2], w.r[3], w.r[5],
+                w.r[6], w.r[5], w.r[4], w.r[5], w.r[6]), 
                 nrow = 5, ncol = 5))
 ```
 
@@ -572,17 +582,19 @@ terra::autocor(sg.utm, w=w.m, method="moran", global = TRUE)
 terra::autocor(gn.utm, w=w.m, method="moran", global = TRUE)
 ```
 
-These are both very far from the random value $-0.041\bar{6}$. Both maps show hot spots with much larger local autocorrelation, and some areas with almost none or even more dispersed than random (negative values).
+These are both very far from the random value $-0.041\bar{6}$. Both maps show hot spots with much larger local autocorrelation than the map average. Some areas have almost none or even more dispersed than random (negative values).
 
 Q: Is the pattern of local autocorrelation the same across the map?
+
+Q: Are the patterns of local autocorrelation the same for both maps? Which areas (if any) are different?
 
 Q: Which map has larger differences?
 
 ## Grey Level Co-occurrence Matrix (GLCM) {#sec-glcm}
 
-The idea of characterizing the texture of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). One method for this is the **Grey Level Co-occurrence Matrix**. The "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values ("grey levels") occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. in Many statistics can then be computed to characterize this matrix.
+The idea of characterizing the "texture" of an image has a long history in image processing (e.g., @haralickTexturalFeaturesImage1973). One method for this is the **Grey Level Co-occurrence Matrix**. Here the "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values ("grey levels") occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. Many statistics can then be computed to characterize this matrix.
 
-Thus GLCM statistics, in the context of DSM, show the **local** statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
+GLCM statistics, in the context of DSM, show the **local** statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
 
 See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures in the context of land cover classification.
 
@@ -590,33 +602,59 @@ See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the constr
 
 The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells. 
 
-Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing typically from 16 to 64. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
+Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing, typically from 16 to 64 levels. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
 
-The GLCM should approximate the joint probability distribution of two pixels with the specified shift(s). We would thus like non-zeroes for most of the GLCM, and if there are too many values in the original matrix, many pairs of values will not occur. 
+The GLCM approximates the joint probability distribution of the levels of two pixels separated bythe specified shift(s), that is, how likely it is that these two levels occur together in the window. We would like to avoid zero probabilities. If there are too many levels, many pairs of  will not occur. So we should pick a number of levels for quantization which avoids this.
 
-For the SoilGrid map most values are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO, due to the reprojection by bilinear interpolation. So quantization is required. 
+For the SoilGrid map most values of the soil property are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO, due to the reprojection by bilinear interpolation. So quantization is required. 
 
-```{r}
-dim(unique(sg.utm))[1]
-prod(dim(sg.utm))
-dim(unique(gn.utm))[1]
-prod(dim(gn.utm))
-```
-
-The following code shows how to quantize the SoilGrids map into 32 levels.
-(This will be done automatically by the `glcm` function, see below.)
+The following code shows how to quantize the SoilGrids map into 16 levels.
+This will be done automatically by the `glcm` function, see below, here we show how this process works. In the actual computation of statistics we will use more levels.
 
 ```{r cut.matrix}
 range(values(sg.utm, na.rm = TRUE))
-sg.quant <- cut(values(sg.utm), breaks = 32, labels = 0:31, include.lowest = TRUE)
+sg.quant <- cut(values(sg.utm), breaks = 16, labels = 0:15, include.lowest = TRUE)
 table(sg.quant)
+# show the breakpoints
+levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE))
 sg.utm.quant <- sg.utm; values(sg.utm.quant) <- sg.quant
-plot(sg.utm.quant, col = rainbow(32))
+plot(sg.utm.quant, col = rainbow(16), main = "pH, 16 levels")
 ```
 
-The lowest quantiles (lowest pH values) are on the hills to the east of the map, the highest quantiles (highest pH values) in the stream valleys to the west.
+The lowest quantiles (lowest pH values) are on the hills to the east of the map, the highest quantiles (highest pH values) in the stream valleys to the west. It is difficult to see just from this map if the GLCM will have too many zeroes, or ifa finer quantization could be supported.
 
-### Computation {#sec-glcm-comp}
+### Constructing a GLCM
+
+This section shows how a GLCM is constructed. We take a simple example of a 16-class quantization and a 5x5 window near the middle of the map, and a one-cell rightward shift.
+
+The `make_glcm` method is provided by a different GLCM package: `GLCMTextures`.
+
+```{r fig.caption = "Example GLCM"}
+require(GLCMTextures)  # v0.4.1
+test.quant <- cut(values(sg.utm), breaks = 16, 
+                  labels = 0:15, include.lowest = TRUE)
+table(test.quant)
+(l.16 <- levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE)))
+test.rast <- sg.utm; values(test.rast) <- test.quant
+dim(test.rast); ext(test.rast)
+(xy <- xyFromCell(test.rast, cellFromRowCol(test.rast, 50:55, 50:55)))
+w.sg <- crop(sg.utm, xy)
+w.sg.16 <- crop(test.rast, xy)
+par(mfrow = c(1,2))
+plot(w.sg, main = "pH")
+plot(w.sg.16, main = "grey level", col = grey.colors(16))
+par(mfrow = c(1,1))
+test.matrix <- as.matrix(w.sg.16, wide = TRUE)
+make_glcm(test.matrix,  
+          n_levels = 8, shift = c(1, 0), # shift one cell to the right
+          normalize = FALSE )
+```
+
+The original matrix is 5 x 5 cells; the GLCM is 8 x 8 levels.
+
+We see in this window many diagonal elements in the GLCM based on 16 levels, thus a fairly homogeneous window when shifted one cell to the right. The values in this window all fell in the three lowest pH classes: `r l.16[1]` to `r l.16[3]`.
+
+### Computation of GLCM texture measures {#sec-glcm-comp}
 
 From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a **shift**. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
 
