@@ -21,7 +21,8 @@ workshop.pkgs <- c("terra", "raster", "sf", "sp", "gstat",
                    "ggplot2", "gridExtra", "tidyterra",
                    "dplyr", "RColorBrewer",
                    "soilDB",
-                   "supercells")
+                   "glcm", "GLCMTextures",
+                   "supercells", "diffeR")
 
 # install them
 for (pkg in workshop.pkgs) {
