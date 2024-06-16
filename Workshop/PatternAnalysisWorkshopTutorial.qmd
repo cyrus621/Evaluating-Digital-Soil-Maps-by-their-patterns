@@ -377,6 +377,7 @@ system.time(
 class(mu.poly)
 st_crs(mu.poly)$proj4string
 summary(mu.poly)
+ext(mu.poly)
 head(mu.poly)
 # plot with area in acres
 plot(mu.poly, y = "area_ac",
@@ -387,7 +388,8 @@ plot(mu.poly, y = "area_ac",
 What do these map units codes represent? Find the map units from the same geometry.
 
 ```{r}
-mu.key <- SDA_spatialQuery(gn.utm, 
+#| label: get-mukey
+mu.key <- SDA_spatialQuery(gn, 
                            what = "mukey", 
                            db = "SSURGO", 
                            geomIntersection = TRUE)
@@ -401,6 +403,7 @@ These have extended site data, which comes from the linked attribute database. F
 [^1]: https://sdmdataaccess.nrcs.usda.gov/
 
 ```{r}
+#| label: site-data
 # format the list of map units for SQL
 IS <- soilDB::format_SQL_in_statement(mu.poly$mukey)
 # query string -- all components
@@ -422,10 +425,26 @@ mu.info[ix, ]
 Project to the metric CRS we are using in this area. The CRS was defined in the previous section.
 
 ```{r}
+#| label: poly-to-utm
 st_crs(mu.poly)$proj4string
-mu.poly <- terra::project(mu.poly, epsg.utm)
-st_crs(mu.poly)$proj4string
+mu.poly.utm <- terra::project(mu.poly, epsg.utm)
+st_crs(mu.poly.utm)$proj4string
+ext(mu.poly.utm)
 ```
+
+Examine a small area of this to see the detailed pattern.
+
+```{r}
+ext.crop.poly <- ext(c(min(ext(mu.poly.utm)[1]),
+                   min(ext(mu.poly.utm)[1])+2000,
+                   4701000, 4703000))
+mu.poly.crop <- crop(mu.poly.utm, ext.crop.poly)
+plot(mu.poly.crop,
+     type = "continuous",
+     main = "SSURGO map units, Varna area")
+```
+
+Here we see a very detailed pattern. This is part of the Cornell University properties, surveyed by @Cline.Bloom1965. This area will be highlighted in the moving-window autocorrelation (@sec-mwla).
 
 # Characterizing patterns
 
@@ -528,7 +547,7 @@ Q: What is the implication for the utility of the maps?
 
 Q: Is there any way to decide which is "better" in some sense?
 
-## Moving-window local association
+## Moving-window local association {#sec-mwla}
 
 The local spatial structure may not be consistent across the mapped area -- that is, the assumption of second-order stationarity may be (and often is) false.
 This means that the average variogram, computed over that area, is misleading. 
@@ -1689,7 +1708,7 @@ The design scale for the polygon SSURGO product varies across the USA. For most 
 
 In a previous section  (@sec-import-gssurgo) we imported a gSSURGO polygon map.
 
-Unfortunately, the `landscapemetrics` package can not (yet?) work with `terra` objects, or vector objects from any package. So to compute landscape metrics for these polygons, they must be rasterized to a resolution where the area and length calculations are sufficiently accurate. The median polygon area is `r round(median(mu.poly$area_ac)/2.47,1)` ha; the minimum legible area (MLA) at the design scale of the soil surveys in this area (1:20k, see published survey document) is 1.6 ha.
+Unfortunately, the `landscapemetrics` package can not (yet?) work with `terra` objects, or vector objects from any package. So to compute landscape metrics for these polygons, they must be rasterized to a resolution where the area and length calculations are sufficiently accurate. The median polygon area is `r round(median(mu.poly.utm$area_ac)/2.47,1)` ha; the minimum legible area (MLA) at the design scale of the soil surveys in this area (1:20k, see published survey document) is 1.6 ha.
 At a grid resolution of 16 pixels per MLA this suggests 20 m horizontal resolution pixels.
 
 
@@ -1698,9 +1717,9 @@ Task: Rasterize the polygon map to this resolution.
 First set up the empty raster and then add the values of the map unit key.
 
 ```{r}
-mu.template <- rast(mu.poly, res=c(20,20))
+mu.template <- rast(mu.poly.utm, res=c(20,20))
 dim(mu.template)
-mu.raster <- rasterize(mu.poly, mu.template, field="mukey")
+mu.raster <- rasterize(mu.poly.utm, mu.template, field="mukey")
 summary(mu.raster)
 check_landscape(mu.raster)
 ```
@@ -2038,7 +2057,7 @@ Now group the map units by these:
 
 ```{r}
 #| label: group
-mu.poly.general <- mu.poly
+mu.poly.general <- mu.poly.utm
 names(values(mu.poly.general))
 (l.all <- length(unique(values(mu.poly)$mukey)))
 names.all <- unlist(lapply(names, function(x) x[1]))
@@ -2066,12 +2085,10 @@ mu.poly.general <- terra::aggregate(mu.poly.general,
                                     fun = "sum")
 plot(mu.poly.general, y=2,
      type = "continuous",
-     main = "SSURGO map units, area in acres")
+     main = "generalized SSURGO map units, area in acres")
 ```
 
 Many polygons are now much larger.
-
-
 
 ### Landscape metrics
 
