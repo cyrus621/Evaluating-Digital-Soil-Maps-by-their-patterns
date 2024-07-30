@@ -1,10 +1,10 @@
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: packages
-options("rgdal_show_exportToProj4_warnings"="none")
+# options("rgdal_show_exportToProj4_warnings"="none")
 options(warn = -1)
-# Robert Hijmans raster and vector data
-library(terra, warn.conflicts=FALSE, quiet = TRUE) # replaces `raster`
-# still needed to convert to `sp`
+# Robert Hijmans raster and vector data; also replaces `raster`
+library(terra, warn.conflicts=FALSE, quiet = TRUE) 
+# older package still needed to convert to `sp` objects
 library(raster, warn.conflicts=FALSE, quiet = TRUE) 
 # Pebesma et al. spation-temporal data
 # Simple Features
@@ -37,31 +37,38 @@ library(RColorBrewer, warn.conflicts=FALSE, quiet = TRUE)
 library(soilDB, warn.conflicts=FALSE, quiet = TRUE)
 # supercells
 # install.packages("supercells", repos = "https://nowosad.r-universe.dev")
-library(supercells)
+library(supercells, warn.conflicts=FALSE, quiet = TRUE)
 # compare two rasters directly -- in development
 # devtools::install_github("Nowosad/spquery")
 # library(spquery)
 # analyze cross-classification matrices
-library(diffeR) 
+library(diffeR, warn.conflicts=FALSE, quiet = TRUE) 
+# GLCM matrices
+library(glcm, warn.conflicts=FALSE, quiet = TRUE)
+library(GLCMTextures, warn.conflicts=FALSE, quiet = TRUE)
 
 
-## ----dirs------------------------------------------------------------------------------------------------------
+## ----dirs------------------------------------------------------------------------------------------------------------------------------------
 #| label: set-base-dir
 file.dir <- path.expand("~/ds_reference/Compare_DSM/")
 
 
-## ----import.maps-----------------------------------------------------------------------------------------------
+## ----import.maps-----------------------------------------------------------------------------------------------------------------------------
 #| label: import
 file.dir <- path.expand("~/ds_reference/Compare_DSM/")
-(gn <- rast(paste0(file.dir, "gNATSGO/lat4243_lon-77-76/ph1to1h2o_r_05_250.tif")))
-(sg <- rast(paste0(file.dir, "SoilGrids250/lat4243_lon-77-76/phh2o_0-5cm_mean.tif")))
+gn.dir <- paste0(file.dir, "gNATSGO/lat4243_lon-77-76/")
+sg.dir <- paste0(file.dir, "SoilGrids250/lat4243_lon-77-76/")
+gn.fn <- "ph1to1h2o_r_05_250.tif"
+sg.fn <- "phh2o_0-5cm_mean.tif"
+(gn <- rast(paste0(gn.dir, gn.fn)))
+(sg <- rast(paste0(sg.dir, sg.fn)))
 
 
-## ----mult.gn---------------------------------------------------------------------------------------------------
+## ----mult.gn---------------------------------------------------------------------------------------------------------------------------------
 values(sg) <- values(sg)/10
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: fig-sg-gn
 #| fig-cap: "pH, 0-5 cm"
 #| warning: false
@@ -75,7 +82,7 @@ terra::plot(gn, main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## ----crop.to.quarter-------------------------------------------------------------------------------------------
+## ----crop.to.quarter-------------------------------------------------------------------------------------------------------------------------
 #| label: crop
 test.tile.size <- 0.25  # degrees
 test.tile.x.offset <- 0.2 # lrc west from right edge
@@ -91,7 +98,7 @@ ext(gn)
 ext(sg)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: crop.2
 (range.sg <- range(values(sg), na.rm = TRUE))
 (range.gn <- range(values(gn), na.rm = TRUE))
@@ -105,7 +112,7 @@ plot(gn, main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: get.utm
 # a function to find the correct UTM zome
 long2UTM <- function(long) { (floor((long + 180)/6) %% 60) + 1 }
@@ -117,7 +124,7 @@ epsg.utm <- paste0("epsg:326", utm.zone)
 cat(paste("CRS code:", epsg.utm))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: resample
 st_bbox(gn)
 res(gn)
@@ -131,14 +138,14 @@ sg.utm <- terra::project(sg, epsg.utm,
 st_bbox(sg.utm)
 
 
-## ----make.extents.identical------------------------------------------------------------------------------------
+## ----make.extents.identical------------------------------------------------------------------------------------------------------------------
 ext(gn.utm)
 ext(sg.utm)
 sg.utm <- resample(sg.utm, gn.utm)
 ext(sg.utm)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: mask
 sg.utm <- mask(sg.utm, gn.utm)
 # SoilGrids now has some `NA` added from gNATSGO
@@ -146,7 +153,7 @@ gn.utm <- mask(gn.utm, sg.utm)
 # The added `NA` are already in gNATSGO, now it gets `NA` originally on SoilGrids
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: fig-sg-gn-utm
 #| fig-cap: "pH, 0-5 cm"
 #| warning: false
@@ -158,7 +165,12 @@ plot(gn.utm, main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## ----save.cropped----------------------------------------------------------------------------------------------------------------------------
+writeRaster(sg.utm, paste0(sg.dir, "crop_", sg.fn), overwrite = TRUE)
+writeRaster(gn.utm, paste0(gn.dir, "crop_", gn.fn), overwrite = TRUE)
+
+
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: download-ssurgo
 # get the polygons with their key
 system.time(
@@ -170,6 +182,7 @@ system.time(
 class(mu.poly)
 st_crs(mu.poly)$proj4string
 summary(mu.poly)
+ext(mu.poly)
 head(mu.poly)
 # plot with area in acres
 plot(mu.poly, y = "area_ac",
@@ -177,15 +190,17 @@ plot(mu.poly, y = "area_ac",
      main = "SSURGO map units, area in acres")
 
 
-## --------------------------------------------------------------------------------------------------------------
-mu.key <- SDA_spatialQuery(gn.utm, 
+## --------------------------------------------------------------------------------------------------------------------------------------------
+#| label: get-mukey
+mu.key <- SDA_spatialQuery(gn, 
                            what = "mukey", 
                            db = "SSURGO", 
                            geomIntersection = TRUE)
 head(mu.key)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
+#| label: site-data
 # format the list of map units for SQL
 IS <- soilDB::format_SQL_in_statement(mu.poly$mukey)
 # query string -- all components
@@ -202,13 +217,25 @@ length(ix <- which(substr(mu.info$muname, 1,
 mu.info[ix, ]
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
+#| label: poly-to-utm
 st_crs(mu.poly)$proj4string
-mu.poly <- terra::project(mu.poly, epsg.utm)
-st_crs(mu.poly)$proj4string
+mu.poly.utm <- terra::project(mu.poly, epsg.utm)
+st_crs(mu.poly.utm)$proj4string
+ext(mu.poly.utm)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
+ext.crop.poly <- ext(c(min(ext(mu.poly.utm)[1]),
+                   min(ext(mu.poly.utm)[1])+2000,
+                   4701000, 4703000))
+mu.poly.crop <- crop(mu.poly.utm, ext.crop.poly)
+plot(mu.poly.crop,
+     type = "continuous",
+     main = "SSURGO map units, Varna area")
+
+
+## --------------------------------------------------------------------------------------------------------------------------------------------
 gn.sp <- as(raster(gn.utm), "SpatialPointsDataFrame")
 gn.sf <- st_as_sf(gn.sp)
 names(gn.sf)
@@ -217,14 +244,14 @@ sg.sf <- st_as_sf(sg.sp)
 names(sg.sf)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: variogram_parameters
 range.init <- 1000  # estimated range, m 
 cutoff.init <- range.init*5  # cutoff for empirical variogram, m
 width.init <- 250   # bin width
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: variogram_empirical
 #| fig-width: 8
 #| fig-height: 4
@@ -239,7 +266,7 @@ p2 <- plot(v.gn, ylim = c(0, ylim.v), main = "gNATSGO")
 grid.arrange(p1, p2, nrow = 1)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: variogram_model
 vm.gn <- vgm(psill = 0.8*max(v.gn$gamma), 
              model = "Exp", 
@@ -250,7 +277,7 @@ vm.sg <- vgm(0.8*max(v.sg$gamma), "Exp", range.init, 0)
 print(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: fitted_variogram_model
 #| fig-width: 8
 #| fig-height: 4
@@ -261,49 +288,65 @@ p2 <- plot(v.gn, model=vmf.gn, ylim = c(0, ylim.v), main = "gNATSGO",
 grid.arrange(p1, p2, nrow = 1)
 
 
-## --------------------------------------------------------------------------------------------------------------
-#| label: wts-matrix
-# for a 5x5 matrix
-# there must be a more elegant way to do this!
-(vl <- variogramLine(vm.sg,   
-                     dist_vector = c(0,
-                                     250, 250*sqrt(2), 
-                                     500, 250*sqrt(5), 
-                                     500*sqrt(2))))
-(w.r <- 1- vl$gamma)  # relative weights
-(w.m <- matrix(c(w.r[6], w.r[5], w.r[4], w.r[5], w.r[6],
-                w.r[5], w.r[3], w.r[2], w.r[3], w.r[5],
-                w.r[4], w.r[2], w.r[1], w.r[2], w.r[4],
-                w.r[5], w.r[3], w.r[2], w.r[3], w.r[5],
-                w.r[6], w.r[5], w.r[4], w.r[5], w.r[6]), 
-                nrow = 5, ncol = 5))
+## ----make.weights----------------------------------------------------------------------------------------------------------------------------
+make.weights <- function(n = 5, res = 250, vgm) {
+  m <- matrix(0, nrow = n, ncol = n)
+  center <- ceiling(n / 2)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      # distance in cell units, multipled by the grid resolution
+      m[i, j] <- sqrt((i - center)^2 + (j - center)^2)*250
+    }
+  }
+  w <- 1 - variogramLine(vm.sg, dist_vector = m)
+  return(w)
+}
 
 
-## --------------------------------------------------------------------------------------------------------------
-#| label: moving-window-5
-sg.utm.autocor <- terra::autocor(sg.utm, w=w.m, 
-                                 method="moran", global = FALSE)
-gn.utm.autocor <- terra::autocor(gn.utm, w=w.m, 
-                                 method="moran", global = FALSE)
-(range.sg.autocor <- range(values(sg.utm.autocor), na.rm = TRUE))
-(range.gn.autocor <- range(values(gn.utm.autocor), na.rm = TRUE))
-range.autocor <- range(range.sg.autocor, range.gn.autocor)
-# hcl.pals(type = "diverging")
-par(mfrow=c(1,2))
-terra::plot(sg.utm.autocor, main = "SG250, Moran's I, 5x5", 
-            range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
-terra::plot(gn.utm.autocor, main = "gNATSGO, Moran's I, 5x5", 
-            range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
-par(mfrow=c(1,1))
+## --------------------------------------------------------------------------------------------------------------------------------------------
+show.autocor <- function(n = 5) {
+  sg.utm.autocor <- terra::autocor(sg.utm, 
+                                   w=make.weights(n, res(sg.utm)[1], vmf.sg), 
+                                   method="moran", global = FALSE)
+  gn.utm.autocor <- terra::autocor(gn.utm, 
+                                   w=make.weights(n, res(gn.utm)[1], vmf.gn), 
+                                   method="moran", global = FALSE)
+  (range.sg.autocor <- range(values(sg.utm.autocor), na.rm = TRUE))
+  (range.gn.autocor <- range(values(gn.utm.autocor), na.rm = TRUE))
+  range.autocor <- range(range.sg.autocor, range.gn.autocor)
+  # hcl.pals(type = "diverging")
+  par(mfrow=c(1,2))
+  terra::plot(sg.utm.autocor, main = paste("SG250, Moran's I", n, "x", n), 
+              range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
+  terra::plot(gn.utm.autocor, main = paste("gNATSGO, Moran's I", n, "x", n), 
+              range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
+  par(mfrow=c(1,1))
+}
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
+#| label: moving-window
+show.autocor(5)
+show.autocor(7)
+show.autocor(9)
+
+
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: global-autocor
-terra::autocor(sg.utm, w=w.m, method="moran", global = TRUE)
-terra::autocor(gn.utm, w=w.m, method="moran", global = TRUE)
+global.moran <- function(n) {
+  print(paste("SG:", round(terra::autocor(sg.utm, 
+                                   w=make.weights(n, res(sg.utm)[1], vmf.sg),
+                                   method="moran", global = TRUE), 3)))
+  print(paste("gNATSGO:", round(terra::autocor(gn.utm, 
+                                          w=make.weights(n, res(gn.utm)[1], vmf.gn), 
+                                          method="moran", global = TRUE), 3)))
+}
+global.moran(5)
+global.moran(7)
+global.moran(9)
 
 
-## ----cut.matrix------------------------------------------------------------------------------------------------
+## ----cut.matrix------------------------------------------------------------------------------------------------------------------------------
 range(values(sg.utm, na.rm = TRUE))
 sg.quant <- cut(values(sg.utm), breaks = 16, labels = 0:15, include.lowest = TRUE)
 table(sg.quant)
@@ -313,15 +356,13 @@ sg.utm.quant <- sg.utm; values(sg.utm.quant) <- sg.quant
 plot(sg.utm.quant, col = rainbow(16), main = "pH, 16 levels")
 
 
-## ----fig.caption = "Example GLCM"------------------------------------------------------------------------------
-require(GLCMTextures)  # v0.4.1
+## ----fig.caption = "Example GLCM"------------------------------------------------------------------------------------------------------------
 test.quant <- cut(values(sg.utm), breaks = 16, 
                   labels = 0:15, include.lowest = TRUE)
-table(test.quant)
-(l.16 <- levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE)))
+l.16 <- levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE))
 test.rast <- sg.utm; values(test.rast) <- test.quant
 dim(test.rast); ext(test.rast)
-(xy <- xyFromCell(test.rast, cellFromRowCol(test.rast, 50:55, 50:55)))
+xy <- xyFromCell(test.rast, cellFromRowCol(test.rast, 50:55, 50:55))
 w.sg <- crop(sg.utm, xy)
 w.sg.16 <- crop(test.rast, xy)
 par(mfrow = c(1,2))
@@ -334,14 +375,13 @@ make_glcm(test.matrix,
           normalize = FALSE )
 
 
-## ----glcm------------------------------------------------------------------------------------------------------
-require(glcm)
+## ----glcm------------------------------------------------------------------------------------------------------------------------------------
 # convert to the older `raster` format
 sg.utm.raster <- raster(sg.utm)
 gn.utm.raster <- raster(gn.utm)
 
 
-## ----measures--------------------------------------------------------------------------------------------------
+## ----measures--------------------------------------------------------------------------------------------------------------------------------
 stat.list <- c("mean","variance","homogeneity","contrast",
                "entropy","dissimilarity","second_moment",
                "correlation")
@@ -366,7 +406,7 @@ plot(glcm.sg)
 plot(glcm.gn)
 
 
-## ----fig.caption = "GLCM mean, 5 x 5 grid cells"---------------------------------------------------------------
+## ----fig.caption = "GLCM mean, 5 x 5 grid cells"---------------------------------------------------------------------------------------------
 zlim <- range(range(values(glcm.sg[["glcm_mean"]]), na.rm = TRUE), 
                      range(values(glcm.gn[["glcm_mean"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
@@ -377,7 +417,7 @@ plot(glcm.gn[["glcm_mean"]], main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## ----fig.caption = "GLCM variance, 5 x 5 grid cells"-----------------------------------------------------------
+## ----fig.caption = "GLCM variance, 5 x 5 grid cells"-----------------------------------------------------------------------------------------
 zlim <- range(range(values(glcm.sg[["glcm_variance"]]), na.rm = TRUE), 
                      range(values(glcm.gn[["glcm_variance"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
@@ -388,7 +428,7 @@ plot(glcm.gn[["glcm_variance"]], main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## ----fig.caption = "GLCM contrast, 5 x 5 grid cells"-----------------------------------------------------------
+## ----fig.caption = "GLCM contrast, 5 x 5 grid cells"-----------------------------------------------------------------------------------------
 zlim <- range(range(values(glcm.sg[["glcm_contrast"]]), na.rm = TRUE), 
                      range(values(glcm.gn[["glcm_contrast"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
@@ -399,7 +439,7 @@ plot(glcm.gn[["glcm_contrast"]], main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## ----fig.caption = "GLCM dissimilarity, 5 x 5 grid cells"------------------------------------------------------
+## ----fig.caption = "GLCM dissimilarity, 5 x 5 grid cells"------------------------------------------------------------------------------------
 zlim <- range(range(values(glcm.sg[["glcm_dissimilarity"]]), na.rm = TRUE), 
                      range(values(glcm.gn[["glcm_dissimilarity"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
@@ -410,7 +450,7 @@ plot(glcm.gn[["glcm_dissimilarity"]], main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## ----fig.caption = "GLCM entropy, 5 x 5 grid cells"------------------------------------------------------------
+## ----fig.caption = "GLCM entropy, 5 x 5 grid cells"------------------------------------------------------------------------------------------
 zlim <- range(range(values(glcm.sg[["glcm_entropy"]]), na.rm = TRUE), 
                      range(values(glcm.gn[["glcm_entropy"]]), na.rm = TRUE))
 par(mfrow=c(1,2))
@@ -421,7 +461,7 @@ plot(glcm.gn[["glcm_entropy"]], main = "gNATSGO",
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: histo-equal
 #| fig-width: 8
 n.class <- 8
@@ -438,7 +478,7 @@ hist(values.all, breaks=36, main="Histogram equalization",
 abline(v=cuts, col="blue", lwd=2)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: histo-equal-one-by-one
 #| fig-width: 14
 par(mfrow=c(1,2))
@@ -451,7 +491,7 @@ abline(v=cuts, col="blue", lwd=2)
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: classify.setup
 (zlim <- c(min(values.all, na.rm = TRUE),
                 max(values.all, na.rm=TRUE)))
@@ -465,7 +505,7 @@ color.ramp <- bpy.colors(n.class+1)
 (cuts <- round(c(zlim[1], cuts, zlim[2]),2))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: classify-raster-hist
 gn.class <- terra::classify(gn.utm, rcl= cuts)
 # gn.class <- as.factor(gn.class)
@@ -476,7 +516,7 @@ table(values(sg.class))
 names(sg.class) <- "class"
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show.classified-hist
 par(mfrow=c(1, 2))
 .l <- range(values(gn.class), na.rm=TRUE)
@@ -490,7 +530,7 @@ terra::plot(sg.class,
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: ph.classes
 range.all <- range(values(gn.utm),
                    values(sg.utm),
@@ -502,7 +542,7 @@ lim.high <- ifelse((lim.high %% .2) != 0, lim.high + 0.1, lim.high)
 (cuts <- seq(lim.low, lim.high, by = 0.2))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: classify-raster-cuts
 gn.class <- terra::classify(gn.utm, rcl= cuts)
 # gn.class <- as.factor(gn.class)
@@ -513,7 +553,7 @@ table(values(sg.class))
 names(sg.class) <- "class"
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show.classified-cuts
 par(mfrow=c(1, 2))
 color.ramp <- bpy.colors(length(cuts))
@@ -528,7 +568,7 @@ terra::plot(sg.class,
 par(mfrow=c(1,1))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: diffeR
 dim(ccm <- diffeR::crosstabm(sg.class, gn.class))
 sum(ccm)
@@ -536,22 +576,22 @@ prod(dim(gn.class))  # total pixels, includes some NA
 ccm[1:5, 1:5]
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label:  diffeR.p
 dim(ccm.p <- diffeR::crosstabm(sg.class, gn.class, percent = TRUE))
 sum(ccm.p)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 ccm.p[1:5, 1:5]
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: diffeR.table
 (dt <- diffeR::diffTablej(ccm))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: components-plot
 #| fig-width: 4
 #| fig-height: 6
@@ -559,7 +599,7 @@ ccm.p[1:5, 1:5]
 overallComponentsPlot(ctmatrix = ccm, units = "pixels")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: crosstab-continuous
 # whole pH units
 print(ccm.c <- crosstabm(sg.utm, gn.utm))
@@ -570,7 +610,7 @@ print((ccm.c10 <- crosstabm(sg.utm*10, gn.utm*10))[1:5, ])
 diffTablej(ccm.c10)[1:5, ]
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: coma
 coma.gn <- lsp_signature(gn.class, type="coma", neighbourhood = 8)
 print(coma.gn.matrix <- as.matrix(coma.gn$signature)[[1]])
@@ -580,14 +620,14 @@ print(coma.sg.matrix <- as.matrix(coma.sg$signature)[[1]])
 sum(diag(coma.sg.matrix))/sum(coma.sg.matrix)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label:  metrics.cove
 # normalized co-occurence vector 8 x 8
 cove.gn <- lsp_signature(gn.class, type="cove", neighbourhood = 8)
 cove.sg <- lsp_signature(sg.class, type="cove", neighbourhood = 8)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: silt-map
 #| fig-width: 8
 (sg.silt <- rast(paste0(file.dir,
@@ -604,7 +644,7 @@ names(sg.silt.class) <- "class"
 plot(sg.silt.class, col = topo.colors(11))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #|.label: coma-cove
 coma.sg.silt <- lsp_signature(sg.silt.class, type="coma", neighbourhood = 8)
 print(coma.sg.silt.matrix <- as.matrix(coma.sg.silt$signature)[[1]])
@@ -612,7 +652,7 @@ sum(diag(coma.sg.silt.matrix))/sum(coma.sg.silt.matrix)
 cove.sg.silt <- lsp_signature(sg.silt.class, type="cove", neighbourhood = 8)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: distance-ph-silt
 cove.df <- data.frame(cove.sg)$signature[[1]][1,]
 cove.df <- rbind(cove.df, cove.sg.silt$signature[[1]][1,])
@@ -624,7 +664,7 @@ cove.dists <- round(
 print(cove.dists)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: incove.dist
 sg.ph.silt.class <- c(sg.class, sg.silt.class)
 incove.sg <- lsp_signature(sg.ph.silt.class,
@@ -638,13 +678,13 @@ summary(incove.sg.dist <- lsp_to_dist(incove.sg,
 dim(incove.sg.dist)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: incove.cluster
 sg.hclust <- hclust(incove.sg.dist, method = "ward.D2")
 plot(sg.hclust, main = "clusters of distance between `incove`")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: incove.cluster.cut
 #| fig-width: 8
 sg.clusters <- as.factor(cutree(sg.hclust, h = 0.5))  # cutpoint by visual inspection
@@ -659,7 +699,7 @@ ggplot(data = sg.grid.sf) +
        fill = "cluster")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: incove-clusters-map-3
 p1 <- ggplot(data = sg.grid.sf) + 
   geom_sf(aes(fill = clust), alpha = 0.7) +
@@ -675,42 +715,42 @@ p3 <- ggplot() +
 gridExtra::grid.arrange(p1, p2, p3, nrow=1)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: list_metrics_patch
 landscapemetrics::list_lsm(level="patch") %>% print(n=Inf)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: list_metrics_class
 landscapemetrics::list_lsm(level="class") %>% print(n=Inf)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: list_metrics_landscape
 landscapemetrics::list_lsm(level="landscape") %>% print(n=Inf)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: compute.metrics.check
 check_landscape(gn.class)
 check_landscape(sg.class)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label:  show.patches.global
 #| fig-width: 8
 show_patches(gn.class, class = "global")
 show_patches(sg.class, class = "global")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label:  show.patches.all
 #| fig-width: 14
 show_patches(sg.class, class = "all", nrow = 3)
 show_patches(gn.class, class = "all", nrow = 3)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 lst <- paste0("lsm_l_", c("shdi", "shei", "lsi", "ai",  "frac_mn"))
 ls.metrics.gn <- calculate_lsm(gn.class, what=lst)
 ls.metrics.sg <- calculate_lsm(sg.class, what=lst)
@@ -721,7 +761,7 @@ names(metrics.table)[2:6] <- ls.metrics.gn$metric
 metrics.table
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: difference.cove
 names(cove.gn)
 cove.df <- data.frame(cove.gn)$signature[[1]][1,]
@@ -734,7 +774,7 @@ cove.dists <- round(
 print(cove.dists)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: lsp.compare
 lsp_compare(gn.class, sg.class, 
             type = "cove", dist_fun = "jensen-shannon",
@@ -742,7 +782,7 @@ lsp_compare(gn.class, sg.class,
             output = "sf")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: lsp.compare.window
 #| fig-width: 6
 dim(sg.class)
@@ -758,7 +798,7 @@ ggplot(data = compare.16) +
   labs(title = "Distance between co-occurrence vectors, pH class")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: cove-patterns-plot
 p1 <- ggplot(data = compare.16) + 
     geom_sf(aes(fill = dist))  +
@@ -772,7 +812,7 @@ p3 <- ggplot() +
 gridExtra::grid.arrange(p1, p2, p3, nrow=1)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: polygonize
 gn.poly <- terra::as.polygons(gn.class,
                               aggregate= TRUE,
@@ -784,7 +824,7 @@ sg.poly <- terra::as.polygons(sg.class,
                               dissolve=TRUE)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: convert.polygons.sf
 gn.sf <- st_as_sf(gn.poly)
 gn.sf <- st_cast(gn.sf, "MULTIPOLYGON")
@@ -793,7 +833,7 @@ sg.sf <- st_as_sf(sg.poly)
 sg.sf <- st_cast(sg.sf, "MULTIPOLYGON")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: make.valid
 st_is_valid(gn.sf, reason=TRUE)
 gn.sf.v <- sf::st_make_valid(gn.sf)  |> st_cast("MULTIPOLYGON")
@@ -802,7 +842,7 @@ st_is_valid(sg.sf, reason=TRUE)
 sg.sf.v <- sf::st_make_valid(sg.sf)  |> st_cast("MULTIPOLYGON")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: make_class_maps
 classes.both <- union(values(sg.poly)$class, values(gn.poly)$class)
 my.pal <- colorRampPalette(brewer.pal(8, "PuBu"))(length(classes.both))
@@ -823,7 +863,7 @@ g1 <- ggplot(data=sg.sf.v) +
 grid.arrange(g0,g1, nrow=1, ncol=2)
 
 
-## ----gNATSGO8.sg-----------------------------------------------------------------------------------------------
+## ----gNATSGO8.sg-----------------------------------------------------------------------------------------------------------------------------
 #| label: gnsg.regions
 regions.sg.gn <- sabre::vmeasure_calc(x = gn.sf.v, 
                                  y = sg.sf.v, 
@@ -834,17 +874,17 @@ names(regions.sg.gn$map1)
 attr(regions.sg.gn, "precision")  # NULL, means a system default
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: vmaps.gnatsgo.sg.homogeneity
 terra::plot(regions.sg.gn$map1["rih"], main = "Inhomogeneity -- SG2 vs. gNATSGO")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: vmaps.gnatsgo.sg.completeness
 terra::plot(regions.sg.gn$map2["rih"], main = "Incompleteness -- SG2 vs. gNATSGO")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: SLIC-source
 #| fig-width: 6
 ggplot() +
@@ -852,7 +892,7 @@ ggplot() +
   labs(fill = "pH")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: supercells-not-compact
 #| fig-width: 6
 sg.utm.50 = supercells(sg.utm, k = 50, compactness = 0.5)
@@ -861,7 +901,7 @@ ggplot(data=sg.utm.50) +
   labs(fill = "mean pH")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: supercells-compact
 #| fig-width: 6
 sg.utm.50 = supercells(sg.utm, k = 50, compactness = 5)
@@ -870,7 +910,7 @@ ggplot(data=sg.utm.50) +
   labs(fill = "mean pH")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: supercells-multiple
 #| fig-width: 6
 r <- c(sg.utm, sg.silt.utm)
@@ -885,15 +925,15 @@ ggplot(data=r.50) +
   scale_fill_continuous(type = "viridis")
 
 
-## --------------------------------------------------------------------------------------------------------------
-mu.template <- rast(mu.poly, res=c(20,20))
+## --------------------------------------------------------------------------------------------------------------------------------------------
+mu.template <- rast(mu.poly.utm, res=c(20,20))
 dim(mu.template)
-mu.raster <- rasterize(mu.poly, mu.template, field="mukey")
+mu.raster <- rasterize(mu.poly.utm, mu.template, field="mukey")
 summary(mu.raster)
 check_landscape(mu.raster)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label:  show.landscape.gn
 #| fig-width: 14
 #| fig-height: 10
@@ -906,17 +946,17 @@ show_patches(mu.raster,
              class = c(mu.key[ix, "mukey"]), nrow = 3)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 gn.20 <- mu.raster
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.30.landscape
 lst <- paste0("lsm_l_", c("shdi", "shei", "lsi", "ai",  "frac_mn"))
 print(ls.metrics.gn20 <- calculate_lsm(gn.20, what=lst)[, c("metric", "value")])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.class
 c_pland.20 <- calculate_lsm(gn.20, what="lsm_c_pland")
 head(sort(c_pland.20$value, decreasing = TRUE), 24)
@@ -924,7 +964,7 @@ ix <- order(c_pland.20$value, decreasing = TRUE)
 head(c_pland.20$class[ix], 24)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.patch.area
 # each patch
 head(sort(area.20 <-  
@@ -932,7 +972,7 @@ head(sort(area.20 <-
 quantile(area.20 , seq(0,1,by=.12))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.patch
 # each patch
 head(ncore.20 <- calculate_lsm(gn.20, what="lsm_p_ncore"))
@@ -945,34 +985,34 @@ ix <- order(ncore.20.summary$max_cores, decreasing = TRUE)
 cbind(mu.key[ix[1:8], ], ncore = ncore.20.summary$max_cores[ix[1:8]])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-patches-Erie-20
 show_patches(gn.20, class = mu.key[ix[1], "mukey"])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-ncore-20
 show_lsm(gn.20, "lsm_p_ncore")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: scale.change.100
 gn.100 <- terra::aggregate(gn.20, fact=5, fun="modal")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 print(ls.metrics.gn20[, c("metric", "value")])
 print(ls.metrics.gn100 <- calculate_lsm(gn.100, what=lst)[, c("metric", "value")])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.100.class
 c_pland.100 <- calculate_lsm(gn.100, what="lsm_c_pland")
 head(sort(c_pland.20$value, decreasing = TRUE), 24)
 head(sort(c_pland.100$value, decreasing = TRUE), 24)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.100.patch.area
 # each patch
 head(sort(area.100 <-  
@@ -981,7 +1021,7 @@ quantile(area.20, seq(0,1,by=.12))
 quantile(area.100, seq(0,1,by=.12))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.100.patch
 # each patch
 head(ncore.100 <- calculate_lsm(gn.100, what="lsm_p_ncore"))
@@ -995,28 +1035,28 @@ ix <- order(ncore.100.summary$max_cores, decreasing = TRUE)
 cbind(mu.key[ix[1:8], ], ncore = ncore.100.summary$max_cores[ix[1:8]])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-patches-Erie-100
 show_patches(gn.100, class = mu.key[ix[1], "mukey"])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-ncore-100
 show_lsm(gn.100, "lsm_p_ncore")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: scale.change.300
 gn.300 <- terra::aggregate(gn.100, fact=3, fun="modal")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 print(ls.metrics.gn20[, c("metric", "value")])
 print(ls.metrics.gn100[, c("metric", "value")])
 print(ls.metrics.gn300 <- calculate_lsm(gn.300, what=lst)[, c("metric", "value")])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.300.class
 c_pland.300 <- calculate_lsm(gn.300, what="lsm_c_pland")
 head(sort(c_pland.20$value, decreasing = TRUE), 24)
@@ -1024,7 +1064,7 @@ head(sort(c_pland.100$value, decreasing = TRUE), 24)
 head(sort(c_pland.300$value, decreasing = TRUE), 24)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.300.patch.area
 # each patch
 head(sort(area.300 <-  
@@ -1034,7 +1074,7 @@ quantile(area.100, seq(0,1,by=.12))
 quantile(area.300, seq(0,1,by=.12))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.300.patch
 # each patch
 head(ncore.300 <- calculate_lsm(gn.300, what="lsm_p_ncore"))
@@ -1047,22 +1087,22 @@ print(ncore.100.summary)
 print(ncore.300.summary)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-patches-Erie-300
 show_patches(gn.300, class = mu.key[ix[1], "mukey"])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: show-ncore-300
 show_lsm(gn.300, "lsm_p_ncore")
 
 
-## ----echo=FALSE------------------------------------------------------------------------------------------------
+## ----echo=FALSE------------------------------------------------------------------------------------------------------------------------------
 ix <- grep("Mardin", mu.key$muname, fixed = TRUE)
 print(mu.key[ix, ])
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: dominant-series
 length(names <- mu.key$muname)
 # first name by spaces
@@ -1072,9 +1112,9 @@ names.unique <- unique(unlist(lapply(names, function(x) x[1])))
 print(names.unique)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: group
-mu.poly.general <- mu.poly
+mu.poly.general <- mu.poly.utm
 names(values(mu.poly.general))
 (l.all <- length(unique(values(mu.poly)$mukey)))
 names.all <- unlist(lapply(names, function(x) x[1]))
@@ -1091,24 +1131,24 @@ for (name in names.unique) {
 names(values(mu.poly.general))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: dissolve-polygons
 mu.poly.general <- terra::aggregate(mu.poly.general,
                                     by = "mukey",
                                     fun = "sum")
 plot(mu.poly.general, y=2,
      type = "continuous",
-     main = "SSURGO map units, area in acres")
+     main = "generalized SSURGO map units, area in acres")
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: rasterize-general
 mu.raster.general <- rasterize(mu.poly.general, mu.template, field="mukey")
 check_landscape(mu.raster.general)
 gn.20.g <- mu.raster.general
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.landscape.genereal
 ls.metrics <- ls.metrics.gn.20.g <- 
   calculate_lsm(gn.20.g, what=lst)[, c("metric", "value")]
@@ -1117,7 +1157,7 @@ names(ls.metrics) <- c("metric", "generalized", "detailed")
 print(ls.metrics)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.class.general
 c_pland.20.g <- calculate_lsm(gn.20.g, what="lsm_c_pland")
 head(sort(c_pland.20.g$value, decreasing = TRUE), 24)
@@ -1127,7 +1167,7 @@ head(c_pland.20.g$class[ix], 24)
 head(c_pland.20$class[ix], 24)
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: metrics.20.patch.area.general
 # each patch
 head(sort(area.20.g <-  
@@ -1138,7 +1178,7 @@ quantile(area.20.g , seq(0,1,by=.12))
 quantile(area.20 , seq(0,1,by=.12))
 
 
-## --------------------------------------------------------------------------------------------------------------
+## --------------------------------------------------------------------------------------------------------------------------------------------
 #| label: cores-general
 ncore.g <- calculate_lsm(gn.20.g, 
                          what="lsm_p_ncore")
@@ -1153,6 +1193,6 @@ g1; g2
 par(mfrow = c(1,2))
 
 
-## ----eval=FALSE------------------------------------------------------------------------------------------------
+## ----eval=FALSE------------------------------------------------------------------------------------------------------------------------------
 ## require(rgeopat2)
 
