@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="D G Rossiter">
-<meta name="dcterms.date" content="2024-06-16">
+<meta name="dcterms.date" content="2024-07-30">
 
-<title>quarto-input22340140</title>
+<title>quarto-input7e0a45f5</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -236,7 +236,7 @@ Pattern Analysis for Evaluating Soil Maps</p></h1>
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 16, 2024</p>
+      <p class="date">July 30, 2024</p>
     </div>
   </div>
   
@@ -600,7 +600,7 @@ max value   :         71.58004 </code></pre>
 <span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  2.429   0.494  25.465 </code></pre>
+  2.444   0.432  22.919 </code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(mu.poly)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -839,7 +839,7 @@ attr(,"package")
 <p>The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.</p>
 <p>Task: Construct a weights matrix for local Moran’s I, for a <span class="math inline">\(5 \times 5\)</span> grid cell neighbourhood, i.e., up to <span class="math inline">\(\pm \; 500 \; m\)</span> in the N/S directions and <span class="math inline">\(\pm \; 500\times\sqrt{2} \approx 707 \; m\)</span> along the diagonals.</p>
 <p>We determine the weights matrix for Moran’s I from the fitted global variogram of the previous section and the grid cell size. Weights are the one minus the semivariance at each cell distance, so that the centre pixel receives the maximum weight.</p>
-<p>Here is a function to make an odd-sized square window with weights from the variogram model, scaled to the resolution.</p>
+<p>Here is a function to make an odd-sized square window (default 5 x 5) with weights taken from the variogram model, scaled to the resolution.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>make.weights <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n =</span> <span class="dv">5</span>, <span class="at">res =</span> <span class="dv">250</span>, vgm) {</span>
 <span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="at">nrow =</span> n, <span class="at">ncol =</span> n)</span>
@@ -3254,7 +3254,7 @@ max value   :        752.4755 </code></pre>
 <h1 data-number="13"><span class="header-section-number">13</span> References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent" data-line-spacing="2" role="list">
 <div id="ref-achantaSLICSuperpixelsCompared2012" class="csl-entry" role="listitem">
-Achanta, R., Shaji, A., Smith, K., Lucchi, A., Fua, P., &amp; Süsstrunk, S. (2012). <span>SLIC Superpixels</span> compared to state-of-the-art superpixel methods. <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, <em>34</em>(11), 2274–2282. <a href="https://doi.org/10.1109/TPAMI.2012.120">https://doi.org/10.1109/TPAMI.2012.120</a>
+Achanta, R., Shaji, A., Smith, K., Lucchi, A., Fua, P., &amp; Süsstrunk, S. (2012). <span>SLIC Superpixels</span> compared to state-of-the-art superpixel methods. <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, <em>34</em>(11), 2274–2282. <span>IEEE Transactions</span> on <span>Pattern Analysis</span> and <span>Machine Intelligence</span>. <a href="https://doi.org/10.1109/TPAMI.2012.120">https://doi.org/10.1109/TPAMI.2012.120</a>
 </div>
 <div id="ref-boulaineRemarquesQuelquesNotions1982" class="csl-entry" role="listitem">
 Boulaine, J. (1982). Remarques sur quelques notions élémentaires de la pédologie”. <em><span>Cahiers O.R.S.T.O.M., Série Pédologie</span></em>, <em>19</em>(1), 29–41.
@@ -3278,7 +3278,7 @@ Hall-Beyer, M. (2017a). <em><span>GLCM Texture</span>: <span>A Tutorial</span> v
 Hall-Beyer, M. (2017b). Practical guidelines for choosing <span>GLCM</span> textures to use in landscape classification tasks over a range of moderate spatial scales. <em>International Journal of Remote Sensing</em>, <em>38</em>(5), 1312–1338. <a href="https://doi.org/10.1080/01431161.2016.1278314">https://doi.org/10.1080/01431161.2016.1278314</a>
 </div>
 <div id="ref-haralickTexturalFeaturesImage1973" class="csl-entry" role="listitem">
-Haralick, R. M., Shanmugam, K., &amp; Dinstein, I. (1973). Textural features for image classification. <em>IEEE Transactions on Systems, Man, and Cybernetics</em>, <em>SMC-3</em>(6), 610–621. <a href="https://doi.org/10.1109/TSMC.1973.4309314">https://doi.org/10.1109/TSMC.1973.4309314</a>
+Haralick, R. M., Shanmugam, K., &amp; Dinstein, I. (1973). Textural features for image classification. <em>IEEE Transactions on Systems, Man, and Cybernetics</em>, <em>SMC-3</em>(6), 610–621. <span>IEEE Transactions</span> on <span>Systems</span>, <span>Man</span>, and <span>Cybernetics</span>. <a href="https://doi.org/10.1109/TSMC.1973.4309314">https://doi.org/10.1109/TSMC.1973.4309314</a>
 </div>
 <div id="ref-Hesselbarth2021" class="csl-entry" role="listitem">
 Hesselbarth, M. H. K. (2021). <em><span>R-Spatialecology/Landscapemetrics</span></em>. r-spatialecology. <a href="https://github.com/r-spatialecology/landscapemetrics">https://github.com/r-spatialecology/landscapemetrics</a>
