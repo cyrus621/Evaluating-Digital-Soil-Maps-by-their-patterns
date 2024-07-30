@@ -568,7 +568,7 @@ Task: Construct a weights matrix for local Moran's I, for a $5 \times 5$ grid ce
 
 We determine the weights matrix for Moran's I from the fitted global variogram of the previous section and the grid cell size. Weights are the one minus the semivariance at each cell distance, so that the centre pixel receives the maximum weight. 
 
-Here is a function to make an odd-sized square window with weights from the variogram model, scaled to the resolution.
+Here is a function to make an odd-sized square window (default 5 x 5) with weights taken from the variogram model, scaled to the resolution. 
 
 ```{r make.weights}
 make.weights <- function(n = 5, res = 250, vgm) {

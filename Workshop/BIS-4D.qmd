@@ -92,7 +92,7 @@ To evaluate patterns we choose a 12 x 12 km sample area with good contrast.
 
 ```{r crop}
 r.c <- rast()
-ext(r.c) <- c(166000, 178000, 434000, 446000)
+ext(r.c) <- c(156500, 182000, 438500, 458500)
 r.c <- crop(r, ext(r.c))
 ext(r.c)
 summary(r.c)
