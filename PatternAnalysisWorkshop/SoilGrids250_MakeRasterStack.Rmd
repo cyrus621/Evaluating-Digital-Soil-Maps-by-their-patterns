@@ -1,0 +1,87 @@
+---
+title: "SoilGrids250 --- Import tiles and combine to a raster stack"
+author:
+- D G Rossiter
+- david.rossiter@wur.nl
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    theme: spacelab
+    number_section: yes
+    fig_height: 6
+    fig_width: 6
+    fig_caption: no
+  pdf_document:
+    toc: yes
+params:
+  lrc_long: 78
+  lrc_lat: 10
+  size: 1
+---
+
+```{r setup, include=FALSE, purl=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, purl=FALSE, fig.align = 'center')
+knitr::opts_chunk$set(cache.extra = R.version.string, comment="")
+```
+
+# Introduction
+
+This script combines SG250 tiles into a raster stack that can be used for (among other things) pattern analysis.
+
+# Directories {#dirs}
+
+Set the base directory where the imported tiles are stored, specific to the local file system. 
+This is the same as used in R Markdown file `SoilGrids250_WCS_Import.Rmd`.
+
+```{r set.dirs}
+(base.dir <- path.expand("~/ds_reference/DSM2025"))
+```
+
+These are the base of destination directories built [below](#dest)
+
+# Packages {#pkgs}
+
+```{r load.pkgs}
+library(terra)          # raster data, replaces `raster`
+```
+
+# Source files
+
+```{r}
+# directory for this AOI
+AOI.dir.prefix <- paste0("lat", params$lrc_lat, params$lrc_lat+params$size, 
+                         "_lon", params$lrc_long-params$size,
+                         params$lrc_long)
+(files.dir <- paste0(base.dir, "/", AOI.dir.prefix))
+length(files.list <- list.files(files.dir, pattern = "*.tif"))
+```
+
+# Raster stack
+
+Make a stack from the set of TIF images.
+
+```{r}
+rs <- rast(paste0(files.dir, "/", files.list))
+sources(rs)
+summary(rs)
+```
+
+Plot the first nine layers to check the stack:
+
+```{r}
+plot(rs[[1:9]])
+```
+
+Save the stack in R format.
+
+```{r save.tile}
+print(paste("file name:",
+      file.out <- paste0(base.dir, "/", AOI.dir.prefix, "_stack.tif")))
+writeRaster(rs, filename = file.out,
+            datatype="FLT4S",
+            overwrite=TRUE,
+            gdal ="TFW=YES")
+```
+
