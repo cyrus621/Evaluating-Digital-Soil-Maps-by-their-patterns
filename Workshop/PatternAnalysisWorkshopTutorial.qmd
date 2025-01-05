@@ -1,8 +1,7 @@
 ---
 title: |
-  | Workshop
+  | Tutorial
   | Pattern Analysis for Evaluating Soil Maps
-  | Pedometrics 2024, Las Cruces NM (USA)
 author:
   - name: D G Rossiter
     orcid: 0000-0003-4558-1286
@@ -15,11 +14,14 @@ author:
       - name: Section of Soil & Crop Sciences, Cornell University
         city: Ithaca
         state: NY (USA)
-date: 04-February-2024
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
 license: "CC-BY"
 bibliography: patterns.bib
 link-citations: true
 csl: /Users/rossiter/Zotero/styles/apa.csl
+knitr: 
+  opts_chunk: 
+    tidy: FALSE
 format: 
     html:
       fig-align: "center"
@@ -42,7 +44,13 @@ format:
       hyperrefoptions:
         - linktoc=all
         - pdfwindowui
-        - pdfpagemode=FullScreen 
+        - pdfpagemode=FullScreen
+    docx:
+      title: "Tutorial: Pattern Analysis for Evaluating Soil Maps"
+      author: "D G Rossiter (ORCID 0000-0003-4558-1286)"
+      toc: true
+      number-sections: true
+      highlight-style: github
 ---
 
 # Abstract
@@ -79,11 +87,11 @@ These R packages will be used in the analysis. They must be pre-installed.
 
 ```{r}
 #| label: packages
-options("rgdal_show_exportToProj4_warnings"="none")
+# options("rgdal_show_exportToProj4_warnings"="none")
 options(warn = -1)
-# Robert Hijmans raster and vector data
-library(terra, warn.conflicts=FALSE, quiet = TRUE) # replaces `raster`
-# still needed to convert to `sp`
+# Robert Hijmans raster and vector data; also replaces `raster`
+library(terra, warn.conflicts=FALSE, quiet = TRUE) 
+# older package still needed to convert to `sp` objects
 library(raster, warn.conflicts=FALSE, quiet = TRUE) 
 # Pebesma et al. spation-temporal data
 # Simple Features
@@ -116,12 +124,15 @@ library(RColorBrewer, warn.conflicts=FALSE, quiet = TRUE)
 library(soilDB, warn.conflicts=FALSE, quiet = TRUE)
 # supercells
 # install.packages("supercells", repos = "https://nowosad.r-universe.dev")
-library(supercells)
+library(supercells, warn.conflicts=FALSE, quiet = TRUE)
 # compare two rasters directly -- in development
 # devtools::install_github("Nowosad/spquery")
 # library(spquery)
 # analyze cross-classification matrices
-library(diffeR) 
+library(diffeR, warn.conflicts=FALSE, quiet = TRUE) 
+# GLCM matrices
+library(glcm, warn.conflicts=FALSE, quiet = TRUE)
+library(GLCMTextures, warn.conflicts=FALSE, quiet = TRUE)
 ```
 
 ## Directories
@@ -139,7 +150,7 @@ file.dir <- path.expand("~/ds_reference/Compare_DSM/")
 
 The output of a DSM prediction can be saved as a GeoTiff [@OGCGeoTIFFStandard2023]. 
 
-Here we provide an example: (1\textdegree x 1\textdegree) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):
+Here we provide an example: (1^\circ x 1^\circ) tiles of the soil pH, measured in 1:1 soil:water ratio, over the 0-5 cm depth slice of an area in central NY State (USA):
 
 (1) predictive map produced by the SoilGrids v2.0 project [@Poggio.etal2021a];
 (2) a rasterized gNATSGO [@nrcssoilsGriddedNationalSoil2023] coverage of the same area, downscaled to match the SoilGrids v2.0 resolution.
@@ -159,8 +170,12 @@ Of course, change the file names if you have downloaded different files (tile, p
 ```{r import.maps}
 #| label: import
 file.dir <- path.expand("~/ds_reference/Compare_DSM/")
-(gn <- rast(paste0(file.dir, "gNATSGO/lat4243_lon-77-76/ph1to1h2o_r_05_250.tif")))
-(sg <- rast(paste0(file.dir, "SoilGrids250/lat4243_lon-77-76/phh2o_0-5cm_mean.tif")))
+gn.dir <- paste0(file.dir, "gNATSGO/lat4243_lon-77-76/")
+sg.dir <- paste0(file.dir, "SoilGrids250/lat4243_lon-77-76/")
+gn.fn <- "ph1to1h2o_r_05_250.tif"
+sg.fn <- "phh2o_0-5cm_mean.tif"
+(gn <- rast(paste0(gn.dir, gn.fn)))
+(sg <- rast(paste0(sg.dir, sg.fn)))
 ```
 
 
@@ -193,7 +208,7 @@ Q: Describe the principal differences between the two maps.
 
 ### Crop to a smaller area
 
-For quicker computation, we restrict the maps (1\textdegree x 1\textdegree) to a quarter-map (0.25\textdegree x 0.25\textdegree), centred to show some interesting patterns.
+For quicker computation, we restrict the maps ($1^\circ$ x 1^\circ) to a quarter-map (0.25^\circ x 0.25^\circ), centred to show some interesting patterns.
 
 Task: Crop the two maps to a quarter-map.
 
@@ -217,7 +232,7 @@ Notice that the two extents are not exactly the same because of the different al
 
 Task: Plot the two quarter-tile maps side by side, with a common legend.
 
-The value ranges are ifferent, so we need to set up a common scale for the visualization.
+The value ranges are different, so we need to set up a common scale for the visualization.
 
 ```{r}
 #| label: crop.2
@@ -239,7 +254,7 @@ Q: Will the obvious difference in values affect the analysis of their patterns?
 
 ### Transform to a metric CRS
 
-Landscape metrics require approximately *equal-area* grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6\textdegree-wide latitude range.
+Landscape metrics require approximately *equal-area* grid cells, so these maps, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. A reasonable choice for any small areais the Universal Transmercator (UTM) system, which covers a 6^\circ-wide latitude range.
 
 Task: Search for the appropriate EPSG code at the [EPSG Geodetic Parameter Dataset](https://epsg.org), see (@fig-epsg).
 
@@ -327,6 +342,14 @@ plot(gn.utm, main = "gNATSGO",
 par(mfrow=c(1,1))
 ```
 
+With all this work, we may want to save these maps for analysis outside of this script.
+
+```{r save.cropped}
+writeRaster(sg.utm, paste0(sg.dir, "crop_", sg.fn), overwrite = TRUE)
+writeRaster(gn.utm, paste0(gn.dir, "crop_", gn.fn), overwrite = TRUE)
+```
+
+
 ## Example dataset: Soil survey map unit polygons {#sec-import-gssurgo}
 
 These will be used when examining the effects of scale in (@sec-scale-geometry) and (@sec-categorical-generalization).
@@ -354,6 +377,7 @@ system.time(
 class(mu.poly)
 st_crs(mu.poly)$proj4string
 summary(mu.poly)
+ext(mu.poly)
 head(mu.poly)
 # plot with area in acres
 plot(mu.poly, y = "area_ac",
@@ -364,7 +388,8 @@ plot(mu.poly, y = "area_ac",
 What do these map units codes represent? Find the map units from the same geometry.
 
 ```{r}
-mu.key <- SDA_spatialQuery(gn.utm, 
+#| label: get-mukey
+mu.key <- SDA_spatialQuery(gn, 
                            what = "mukey", 
                            db = "SSURGO", 
                            geomIntersection = TRUE)
@@ -378,6 +403,7 @@ These have extended site data, which comes from the linked attribute database. F
 [^1]: https://sdmdataaccess.nrcs.usda.gov/
 
 ```{r}
+#| label: site-data
 # format the list of map units for SQL
 IS <- soilDB::format_SQL_in_statement(mu.poly$mukey)
 # query string -- all components
@@ -399,10 +425,26 @@ mu.info[ix, ]
 Project to the metric CRS we are using in this area. The CRS was defined in the previous section.
 
 ```{r}
+#| label: poly-to-utm
 st_crs(mu.poly)$proj4string
-mu.poly <- terra::project(mu.poly, epsg.utm)
-st_crs(mu.poly)$proj4string
+mu.poly.utm <- terra::project(mu.poly, epsg.utm)
+st_crs(mu.poly.utm)$proj4string
+ext(mu.poly.utm)
 ```
+
+Examine a small area of this to see the detailed pattern.
+
+```{r}
+ext.crop.poly <- ext(c(min(ext(mu.poly.utm)[1]),
+                   min(ext(mu.poly.utm)[1])+2000,
+                   4701000, 4703000))
+mu.poly.crop <- crop(mu.poly.utm, ext.crop.poly)
+plot(mu.poly.crop,
+     type = "continuous",
+     main = "SSURGO map units, Varna area")
+```
+
+Here we see a very detailed pattern. This is part of the Cornell University properties, surveyed by @Cline.Bloom1965. This area will be highlighted in the moving-window autocorrelation (@sec-mwla).
 
 # Characterizing patterns
 
@@ -414,7 +456,7 @@ The methods to characterize patterns are different for maps of *continuous* vari
 
 These are methods that require continuous values on at least an interval scale, and usually a ratio scale (with a true zero). In the case of the example here, pH does not have a true zero, so it is an interval scale. Other properties such as soil thickness to a restricting layer have a true zero, and one can speak of one location being "twice as thick" than another, for example.
 
-## The global variogram
+## The global variogram {#sec-vgm}
 
 The variogram (or a correlogram) can be used to characterize the degree of spatial continuity and the "roughness" of a continuous property map, averaged across the entire map. Note that this depends on the grid cell size in two ways:
 
@@ -425,9 +467,9 @@ In this section we compute and compare the short-range variograms, these reveal 
 
 Note: Variograms are typically produced separately for each mapped soil property. To characterize an inherent landscape scale, a number of properties can be combined by principal component analysis (PCA) and the first component (PC1) can be characterized.
 
-Task: Convert the `terra::SpatRaster` objects to `raster::raster` and then to `sf:sf` objects in order to compute variograms. 
+Task: Convert the `terra::SpatRaster` objects to `raster::raster` and then to `sf:sf` objects in order to compute variograms. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
 
-Note: There is (so far) no direct conversion. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
+Note: There is (so far) no direct conversion from `terra::SpatRaster` objects to `sf:sf` objects. 
 
 ```{r}
 gn.sp <- as(raster(gn.utm), "SpatialPointsDataFrame")
@@ -473,14 +515,17 @@ Task: Fit a variogram model to the empirical variogram.
 
 The differences can be quantified by the parameters of a fitted variogram model. We try an exponential model because (1) it has the simplest theory, and (2) we expect to not reach a sill within the short range investigated.
 
-We use the `fit.variogram` method to adjust an initial estimate by weighted least squared. The estimated sill is the maximum $\gamma$ in the empirical variogram.
+We use the `fit.variogram` method to adjust an initial estimate by weighted least squares (linear in the number of point-pairs and inverse squared in the separation disatance, i.e., the default `gstat` method 7). The estimated sill is the maximum $\gamma$ in the empirical variogram.
 
 ```{r}
 #| label: variogram_model
-vm.gn <- vgm(0.8*max(v.gn$gamma), "Exp", range.init, 0)
-(vmf.gn <- fit.variogram(v.gn, model=vm.gn))
+vm.gn <- vgm(psill = 0.8*max(v.gn$gamma), 
+             model = "Exp", 
+             range = range.init, 
+             nugget = 0)
+print(vmf.gn <- fit.variogram(v.gn, model=vm.gn))
 vm.sg <- vgm(0.8*max(v.sg$gamma), "Exp", range.init, 0)
-(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
+print(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
 ```
 
 ```{r}
@@ -502,9 +547,12 @@ Q: What is the implication for the utility of the maps?
 
 Q: Is there any way to decide which is "better" in some sense?
 
-## Moving-window local association
+## Moving-window local association {#sec-mwla}
 
-The local spatial structure may not be consistent across the mapped area, so that the average variogram, computed over that area, can be misleading. With so many values (grid cells) it's possible to compute moving-window variograms, as in the VESPER program [@minasnyVESPERVariogramEstimation2005] developed for precision agriculture applications. This will show if the pattern is consistent across the map, and also allow maps to be compared block-by-block. I have not (yet?) implemented this in R, so we will use another method to assess moving-window local spatial association.
+The local spatial structure may not be consistent across the mapped area -- that is, the assumption of second-order stationarity may be (and often is) false.
+This means that the average variogram, computed over that area, is misleading. 
+
+The gridded maps have so many cells that it's possible to compute **moving-window variograms**, as in the VESPER program [@minasnyVESPERVariogramEstimation2005] developed for precision agriculture applications. This will show if the local spatial association is consistent across the map. This also allows maps to be compared window-by-window. I have not (yet?) implemented this in R, so we must use another method to assess moving-window local spatial association.
 
 A quick way to see the local degree of autocorrelation is with Moran's I applied to a window of appropriate size around each grid cell, using the `terra::autocor` function.
 
@@ -512,66 +560,285 @@ Moran's I is defined as:
 
 $$  I = \frac{n}{\sum_i \sum_j w_{ij}} \frac{\sum_i \sum_j w_{ij}(y_i - \bar{y})(y_j - \bar{y})}{\sum_i (y_i - \bar{y})^2}$$
 
-where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial \textbf{weight} of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a 5~x~5 neighbourhood the expected value if random is $-1/24 = -0.041\bar{6} \approx 0$.
+where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial **weight** of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a $5 \times 5$ neighbourhood the expected value is $-1/24 = -0.041\bar{6} \approx 0$.
 
-The second term numerator is the weighted covariance; its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
+The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
 
-Task: Construct a weights matrix for local Moran's I
+Task: Construct a weights matrix for local Moran's I, for a $5 \times 5$ grid cell neighbourhood, i.e., up to $\pm \; 500 \; m$ in the N/S directions and $\pm \; 500\times\sqrt{2} \approx 707 \; m$ along the diagonals. 
 
-We determine the weights matrix for Moran's I from the global variogram analysis and the grid cell size.
+We determine the weights matrix for Moran's I from the fitted global variogram of the previous section and the grid cell size. Weights are the one minus the semivariance at each cell distance, so that the centre pixel receives the maximum weight. 
 
-```{r}
-#| label: wts-matrix
-# for a 5x5 matrix
-# there must be a more elegant way to do this!
-(vl <- variogramLine(vm.sg, 
-                     dist_vector = c(250, 250*sqrt(2), 
-                                     500, 250*sqrt(5), 
-                                     500*sqrt(2))))
-(w.r <- 1/(vl$gamma / vl$gamma[1]))  # relative weights
-(w.m <- matrix(c(w.r[5], w.r[4], w.r[3], w.r[4], w.r[5],
-                w.r[5], w.r[2], w.r[1], w.r[2], w.r[5],
-                w.r[3], w.r[1], 0, w.r[1], w.r[3],
-                w.r[5], w.r[2], w.r[1], w.r[2], w.r[5],
-                w.r[5], w.r[4], w.r[3], w.r[4], w.r[5]), 
-                nrow = 5, ncol = 5))
+Here is a function to make an odd-sized square window (default 5 x 5) with weights taken from the variogram model, scaled to the resolution. 
+
+```{r make.weights}
+make.weights <- function(n = 5, res = 250, vgm) {
+  m <- matrix(0, nrow = n, ncol = n)
+  center <- ceiling(n / 2)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      # distance in cell units, multipled by the grid resolution
+      m[i, j] <- sqrt((i - center)^2 + (j - center)^2)*250
+    }
+  }
+  w <- 1 - variogramLine(vm.sg, dist_vector = m)
+  return(w)
+}
 ```
 
-Task: Compute and display the moving-window autocorrelation.
-
-This uses the `terra::autocor` method, applied to a weighted window.
+Here is a function to use this to compute and display the moving-window autocorrelation for any odd window size. This uses the `terra::autocor` method, applied to a weighted window.
 
 ```{r}
-#| label: moving-window-5
-sg.utm.autocor <- terra::autocor(sg.utm, w=w.m, 
-                                 method="moran", global = FALSE)
-gn.utm.autocor <- terra::autocor(gn.utm, w=w.m, 
-                                 method="moran", global = FALSE)
-(range.sg.autocor <- range(values(sg.utm.autocor), na.rm = TRUE))
-(range.gn.autocor <- range(values(gn.utm.autocor), na.rm = TRUE))
-range.autocor <- range(range.sg.autocor, range.gn.autocor)
-# hcl.pals(type = "diverging")
-par(mfrow=c(1,2))
-terra::plot(sg.utm.autocor, main = "SG250, Moran's I, 5x5", 
-            range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
-terra::plot(gn.utm.autocor, main = "gNATSGO, Moran's I, 5x5", 
-            range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
-par(mfrow=c(1,1))
+show.autocor <- function(n = 5) {
+  sg.utm.autocor <- terra::autocor(sg.utm, 
+                                   w=make.weights(n, res(sg.utm)[1], vmf.sg), 
+                                   method="moran", global = FALSE)
+  gn.utm.autocor <- terra::autocor(gn.utm, 
+                                   w=make.weights(n, res(gn.utm)[1], vmf.gn), 
+                                   method="moran", global = FALSE)
+  (range.sg.autocor <- range(values(sg.utm.autocor), na.rm = TRUE))
+  (range.gn.autocor <- range(values(gn.utm.autocor), na.rm = TRUE))
+  range.autocor <- range(range.sg.autocor, range.gn.autocor)
+  # hcl.pals(type = "diverging")
+  par(mfrow=c(1,2))
+  terra::plot(sg.utm.autocor, main = paste("SG250, Moran's I", n, "x", n), 
+              range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
+  terra::plot(gn.utm.autocor, main = paste("gNATSGO, Moran's I", n, "x", n), 
+              range = range.autocor, col = rev(hcl.colors(32, palette = "RdYlGn")))
+  par(mfrow=c(1,1))
+}
 ```
+
+Task: Compute and display the moving-window autocorrelation, for a 5 x 5 window, in this case 1250 x 1250 m; a 7 x 7 window (1500 x 1500); and a 9 x 9 window (1750 x 1750).
+
+
+```{r}
+#| label: moving-window
+show.autocor(5)
+show.autocor(7)
+show.autocor(9)
+```
+
+These are all very far from the random value $-0.041\bar{6}$. Both maps show hot spots with much larger local autocorrelation than the map average. Some areas have almost none or even more dispersed than random (negative values).
 
 To appreciate the local Moran's I values, here are the global Moran's I with the same weights matrix. These are the averages of all the local (window) Moran's I.
 
 ```{r}
 #| label: global-autocor
-terra::autocor(sg.utm, w=w.m, method="moran", global = TRUE)
-terra::autocor(gn.utm, w=w.m, method="moran", global = TRUE)
+global.moran <- function(n) {
+  print(paste("SG:", round(terra::autocor(sg.utm, 
+                                   w=make.weights(n, res(sg.utm)[1], vmf.sg),
+                                   method="moran", global = TRUE), 3)))
+  print(paste("gNATSGO:", round(terra::autocor(gn.utm, 
+                                          w=make.weights(n, res(gn.utm)[1], vmf.gn), 
+                                          method="moran", global = TRUE), 3)))
+}
+global.moran(5)
+global.moran(7)
+global.moran(9)
 ```
 
-These are both very far from the random value $-0.041\bar{6}$. Both maps show hot spots with much larger local autocorrelation, and some areas with almost none or even more dispersed than random (negative values).
 
 Q: Is the pattern of local autocorrelation the same across the map?
 
+Q: Are the patterns of local autocorrelation the same for both maps? Which areas (if any) are different?
+
 Q: Which map has larger differences?
+
+Q: How do the difference change as the window size increases?
+
+## Grey Level Co-occurrence Matrix (GLCM) {#sec-glcm}
+
+The idea of characterizing the "texture" of an image has a long history in image processing @haralickTexturalFeaturesImage1973. One method for this is the **Grey Level Co-occurrence Matrix**. Here the "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values ("grey levels") occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. Many statistics can then be computed to characterize this matrix.
+
+GLCM statistics, in the context of DSM, show the **local** statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
+
+See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures in the context of land cover classification.
+
+### Quantization {#sec-glcm-quant}
+
+The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells. 
+
+Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing, typically from 16 to 64 levels. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
+
+The GLCM approximates the joint probability distribution of the levels of two pixels separated bythe specified shift(s), that is, how likely it is that these two levels occur together in the window. We would like to avoid zero probabilities. If there are too many levels, many pairs of  will not occur. So we should pick a number of levels for quantization which avoids this.
+
+For the SoilGrid map most values of the soil property are different, in fact in this example there are `r dim(unique(sg.utm))[1]` different values, not many fewer than the pixel count, `r prod(dim(sg.utm))`. The same is true for gNATSGO, due to the reprojection by bilinear interpolation. So quantization is required. 
+
+The following code shows how to quantize the SoilGrids map into 16 levels.
+This will be done automatically by the `glcm` function, see below, here we show how this process works. In the actual computation of statistics we will use more levels.
+
+```{r cut.matrix}
+range(values(sg.utm, na.rm = TRUE))
+sg.quant <- cut(values(sg.utm), breaks = 16, labels = 0:15, include.lowest = TRUE)
+table(sg.quant)
+# show the breakpoints
+levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE))
+sg.utm.quant <- sg.utm; values(sg.utm.quant) <- sg.quant
+plot(sg.utm.quant, col = rainbow(16), main = "pH, 16 levels")
+```
+
+The lowest quantiles (lowest pH values) are on the hills to the east of the map, the highest quantiles (highest pH values) in the stream valleys to the west. It is difficult to see just from this map if the GLCM will have too many zeroes, or ifa finer quantization could be supported.
+
+### Constructing a GLCM
+
+This section shows how a GLCM is constructed. We take a simple example of a 16-class quantization and a 5x5 window near the middle of the map, and a one-cell rightward shift.
+
+The `make_glcm` method is provided by a different GLCM package: `GLCMTextures`.
+
+```{r fig.caption = "Example GLCM"}
+test.quant <- cut(values(sg.utm), breaks = 16, 
+                  labels = 0:15, include.lowest = TRUE)
+l.16 <- levels(cut(values(sg.utm), breaks = 16, include.lowest = TRUE))
+test.rast <- sg.utm; values(test.rast) <- test.quant
+dim(test.rast); ext(test.rast)
+xy <- xyFromCell(test.rast, cellFromRowCol(test.rast, 50:55, 50:55))
+w.sg <- crop(sg.utm, xy)
+w.sg.16 <- crop(test.rast, xy)
+par(mfrow = c(1,2))
+plot(w.sg, main = "pH")
+plot(w.sg.16, main = "grey level", col = grey.colors(16))
+par(mfrow = c(1,1))
+test.matrix <- as.matrix(w.sg.16, wide = TRUE)
+make_glcm(test.matrix,  
+          n_levels = 8, shift = c(1, 0), # shift one cell to the right
+          normalize = FALSE )
+```
+
+The original matrix is 5 x 5 cells; the GLCM is 8 x 8 levels.
+
+We see in this window that almost all  elements are on the diagonal, i.e., no change in level based on the 16-level GLCM. This is thus a fairly homogeneous window when shifted one cell to the right. The values in this window all fell in the three lowest pH classes: `r l.16[1]` to `r l.16[3]`.
+
+### Computation of GLCM texture measures {#sec-glcm-comp}
+
+From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a **shift**. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
+
+If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.
+
+The GLCM describes the spatial relationships of (quantized) values in the map; this can be considered "texture". Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM. 
+
+The R `glcm` package computes these metrics. It requires an object in the older `raster` package format.
+
+```{r glcm}
+# convert to the older `raster` format
+sg.utm.raster <- raster(sg.utm)
+gn.utm.raster <- raster(gn.utm)
+```
+
+We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used to characterize the shifts in that orientation.
+
+We choose to compute on a 5 x 5 window (both dimensions must be odd). Since the resolution is already coarse (250 m) this will characterize the texture in $1.5625 ~ \mathrm{km}^2$ squares
+
+```{r measures}
+stat.list <- c("mean","variance","homogeneity","contrast",
+               "entropy","dissimilarity","second_moment",
+               "correlation")
+glcm.sg <- rast(glcm(sg.utm.raster,
+                   window = c(5, 5),
+                   n_grey = 32, # number of levels in the GLCM
+                   shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
+                   na_opt = "ignore",
+                   statistics = stat.list))
+# gNATSGO is not perfectly square
+glcm.gn <- rast(glcm(gn.utm.raster,
+                   window = c(5, 5),
+                   n_grey = 32, # number of levels in the GLCM
+                   shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
+                   na_opt = "ignore",
+                   statistics = stat.list))
+class(glcm.sg)
+summary(glcm.sg)
+summary(glcm.gn)
+summary(glcm.sg-glcm.gn)
+plot(glcm.sg)
+plot(glcm.gn)
+```
+
+### Interpretation {#sec-glcm-interp}
+
+Each of the texture metrics quantifies some aspect of the texture. For a thorough explanation see @hall-beyerGLCMTextureTutorial2017 and @hall-beyerPracticalGuidelinesChoosing2017. Here we examine a few of them.
+
+**Mean** and **Variance** represent the overall inhomogeneity of the window. The mean is the mean change in the selected shift(s) and the variance is how variable are the changes.
+
+$$\mu = \sum_{i,j = 0}^{N-1} i \cdot P_{i,j}$$
+```{r fig.caption = "GLCM mean, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_mean"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_mean"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_mean"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(sp::bpy.colors(32)))
+plot(glcm.gn[["glcm_mean"]], main = "gNATSGO", 
+     range = zlim, col=(sp::bpy.colors(32)))
+par(mfrow=c(1,1))
+```
+
+Areas with the higher values have more and/or larger differences between neighbours. 
+
+$$\sigma^2 = \sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - \mu)^2$$
+
+```{r fig.caption = "GLCM variance, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_variance"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_variance"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_variance"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(cm.colors(32)))
+plot(glcm.gn[["glcm_variance"]], main = "gNATSGO", 
+     range = zlim, col=(cm.colors(32)))
+par(mfrow=c(1,1))
+```
+
+Im this case the SoilGrids map has more dispersion in the types of changes.
+
+**Contrast** is the amount of local variation in a window, with emphasis (squared distance) on the off-diagonals of the GLCM, i.e., larger changes in the quanta level.
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - j)^2$$
+
+
+where $P_{i,j}$ is the proportion of the class $i$ and $j$ co-occurrence in the window.
+
+```{r fig.caption = "GLCM contrast, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_contrast"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_contrast"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_contrast"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(topo.colors(32)))
+plot(glcm.gn[["glcm_contrast"]], main = "gNATSGO", 
+     range = zlim, col=(topo.colors(32)))
+par(mfrow=c(1,1))
+```
+
+We see that SoilGrids has very little contrast across most of the map, whereas gNATSGO has stronger contrasts. Both have "hot spots" of high contrast, i.e., areas in the map with a relatively wide range of pH values. Note that this shows that the assumption of second-order stationarity used in the variogram analysis @sec-vgm is definitely not correct. 
+
+A variant is the **dissimilarity**, where the weights are linear away from the diagonal, rather than quadratic:
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot |i - j|$$
+```{r fig.caption = "GLCM dissimilarity, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_dissimilarity"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_dissimilarity"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_dissimilarity"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(topo.colors(32)))
+plot(glcm.gn[["glcm_dissimilarity"]], main = "gNATSGO", 
+     range = zlim, col=(topo.colors(32)))
+par(mfrow=c(1,1))
+```
+
+**Entropy** is a measure of information within a window. It accounts for the number of different levels in the window (the others will have "probability" zero) and their relative frequencies. More classes and more even distribution of classes results in increased entropy. This can be thought of as "lack of information".
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot -\ln(P_{i,j})$$
+```{r fig.caption = "GLCM entropy, 5 x 5 grid cells"}
+zlim <- range(range(values(glcm.sg[["glcm_entropy"]]), na.rm = TRUE), 
+                     range(values(glcm.gn[["glcm_entropy"]]), na.rm = TRUE))
+par(mfrow=c(1,2))
+plot(glcm.sg[["glcm_entropy"]], main = "SoilGrids v2.0", 
+     range = zlim, col=(topo.colors(32)))
+plot(glcm.gn[["glcm_entropy"]], main = "gNATSGO", 
+     range = zlim, col=(topo.colors(32)))
+par(mfrow=c(1,1))
+```
+
+In this case there is quite low entropy in some of the hilly areas of the SoilGrids maps. Most windows of the gNATSGO map have high entropy, at this window size.
+
+Challenge: compute the GLCM statistics for different window sizes.
 
 # Characterizing patterns -- Classified {#sec-classified}
 
@@ -1006,7 +1273,7 @@ Careful examination reveals that the cluster in the NW corner corresponds to an 
 
 ## Landscape metrics {#sec-lsm}
 
-Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the \texttt{landscapemetrics} package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
+Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the `landscapemetrics` package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
 
 [^2]: https://r-spatialecology.github.io/landscapemetrics/
 
@@ -1437,11 +1704,11 @@ Clearly, products can only be compared at the same resolution. A finer-scale pro
 
 What happens to the landscape metrics as the resolution changes? Let's examine one map from the most detailed soil survey, gSSURGO.
 
-The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24K, with Minimum Legible Area (MLA) 0.576--2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12 -- 24x24 cells.  The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30 k design scale.
+The design scale for the polygon SSURGO product varies across the USA. For most areas with detailed survey, it is from 1:12k to 1:24k, with Minimum Legible Area (MLA) 0.576--2.304 ha. With a grid resolution of 16 grid cells per MLA, these would be from 12x12--24x24 m cells.  The 30 m gSSURGO roughly corresponds to this coarser resolution. It is equivalent to 1:30k design scale.
 
 In a previous section  (@sec-import-gssurgo) we imported a gSSURGO polygon map.
 
-Unfortunately, the `landscapemetrics` package can not (yet?) work with `terra` objects, or vector objects from any package. So to compute landscape metrics for these polygons, they must be rasterized to a resolution where the area and length calculations are sufficiently accurate. The median polygon area is `r round(median(mu.poly$area_ac)/2.47,1)` ha; the minimum legible area (MLA) at the design scale of the soil surveys in this area (1:20k, see published survey document) is 1.6 ha.
+Unfortunately, the `landscapemetrics` package can not (yet?) work with `terra` objects, or vector objects from any package. So to compute landscape metrics for these polygons, they must be rasterized to a resolution where the area and length calculations are sufficiently accurate. The median polygon area is `r round(median(mu.poly.utm$area_ac)/2.47,1)` ha; the minimum legible area (MLA) at the design scale of the soil surveys in this area (1:20k, see published survey document) is 1.6 ha.
 At a grid resolution of 16 pixels per MLA this suggests 20 m horizontal resolution pixels.
 
 
@@ -1450,9 +1717,9 @@ Task: Rasterize the polygon map to this resolution.
 First set up the empty raster and then add the values of the map unit key.
 
 ```{r}
-mu.template <- rast(mu.poly, res=c(20,20))
+mu.template <- rast(mu.poly.utm, res=c(20,20))
 dim(mu.template)
-mu.raster <- rasterize(mu.poly, mu.template, field="mukey")
+mu.raster <- rasterize(mu.poly.utm, mu.template, field="mukey")
 summary(mu.raster)
 check_landscape(mu.raster)
 ```
@@ -1790,7 +2057,7 @@ Now group the map units by these:
 
 ```{r}
 #| label: group
-mu.poly.general <- mu.poly
+mu.poly.general <- mu.poly.utm
 names(values(mu.poly.general))
 (l.all <- length(unique(values(mu.poly)$mukey)))
 names.all <- unlist(lapply(names, function(x) x[1]))
@@ -1818,12 +2085,10 @@ mu.poly.general <- terra::aggregate(mu.poly.general,
                                     fun = "sum")
 plot(mu.poly.general, y=2,
      type = "continuous",
-     main = "SSURGO map units, area in acres")
+     main = "generalized SSURGO map units, area in acres")
 ```
 
 Many polygons are now much larger.
-
-
 
 ### Landscape metrics
 
@@ -1841,7 +2106,8 @@ Compare the *landscape-level* metrics at 20 m resolution for the generalized and
 
 ```{r}
 #| label: metrics.20.landscape.genereal
-ls.metrics <- ls.metrics.gn.20.g <- calculate_lsm(gn.20.g, what=lst)[, c("metric", "value")]
+ls.metrics <- ls.metrics.gn.20.g <- 
+  calculate_lsm(gn.20.g, what=lst)[, c("metric", "value")]
 ls.metrics$detailed <- ls.metrics.gn20$value
 names(ls.metrics) <- c("metric", "generalized", "detailed")
 print(ls.metrics)
@@ -1869,7 +2135,9 @@ Compare at the *patch level*:
 #| label: metrics.20.patch.area.general
 # each patch
 head(sort(area.20.g <-  
-            calculate_lsm(gn.20.g, what="lsm_p_area")$value, decreasing = TRUE))
+            calculate_lsm(gn.20.g, 
+                          what="lsm_p_area")$value, 
+          decreasing = TRUE))
 quantile(area.20.g , seq(0,1,by=.12))
 quantile(area.20 , seq(0,1,by=.12))
 ```
@@ -1880,7 +2148,8 @@ Core areas:
 
 ```{r}
 #| label: cores-general
-ncore.g <- calculate_lsm(gn.20.g, what="lsm_p_ncore")
+ncore.g <- calculate_lsm(gn.20.g, 
+                         what="lsm_p_ncore")
 ncore.g.summary <- ncore.g %>% group_by(class) %>%
   summarize(max_cores = max(value)) %>%
   arrange(class)

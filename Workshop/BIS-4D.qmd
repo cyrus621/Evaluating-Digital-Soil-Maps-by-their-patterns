@@ -1,0 +1,141 @@
+---
+title: "BIS-4D maps"
+author:
+  - name: D G Rossiter
+    orcid: 0000-0003-4558-1286
+    email: david.rossiter@isric.org, d.g.rossiter@cornell.edu
+    url: https://www.css.cornell.edu/faculty/dgr2/pubs/index.html
+    affiliation:
+      - name: ISRIC-World Soil Information
+        city: Wageningen
+        state: NL
+      - name: Section of Soil & Crop Sciences, Cornell University
+        city: Ithaca
+        state: NY (USA)
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
+license: "CC-BY"
+knitr: 
+  opts_chunk: 
+    tidy: FALSE
+format: 
+    html:
+      fig-align: "center"
+      fig-height: 8
+      fig-width: 12
+      number-sections: true
+      theme: "spacelab"
+      df-print: "paged"
+      code-fold: false
+      toc: true
+      toc-float: true
+      warning: false
+---
+
+Helfenstein, A., Mulder, V. L., Hack-ten Broeke, M. J. D., van Doorn, M., Teuling, K., Walvoort, D. J. J., & Heuvelink, G. B. M. (2024). BIS-4D: Maps of soil properties and their uncertainties at 25 m resolution in the Netherlands (Versie 2) [GeoTIFF (.tif)]. [object Object]. https://doi.org/10.4121/0C934AC6-2E95-4422-8360-D3A802766C71
+
+"[This dataset] contains maps of soil properties and their uncertainties at 25m resolution in the Netherlands obtained using the BIS-4D soil modelling and mapping platform. "
+
+"This dataset includes maps of predictions of the mean, 0.05, 0.50 (median) and 0.95 quantiles and the 90th prediction interval width (PI90) of clay content [%], silt content [%], sand content [%], bulk density (BD) [g/cm3], soil organic matter (SOM) [%], pH [KCl], total N (Ntot) [mg/kg], oxalate-extractable P (Pox) [mmol/kg] and cation exchange capacity (CEC) [mmol(c)/kg]. Prediction maps are available for the standard depth layers specified by the GlobalSoilMap initiative (0-5, 5-15, 15-30, 30-60, 60-100 and 100-200cm). For SOM, these prediction maps are available for the years 1953, 1960, 1970, 1980, 1990, 2000, 2010, 2020 and 2023 based on changing land use, peat classes and peat occurrence over time."
+
+File naming structure: "[soil property]_d_[upper depth layer boundary]_[lower depth layer boundary]_QRF_[PI90/pred type]_[processed].tif"
+
+Example: "clay_per_d_0_5_QRF_pred_mean_processed.tif"
+
+Soil property denotes the target soil property (listed above), depth upper and lower boundaries indicate the prediction target depth, QRF = quantile regression forest, which is the algorithm used for model calibration and prediction, PI90 is a measure of prediction uncertainy and is the 95th - 5th quantile, "pred_mean" indicates mean predictions, "pred50" indicates median predictions, "pred5" indicates 5th quantile prediction and "pred95" indicates 95th quantile prediction. ... For SOM, the target prediction year is also indicated directly after "SOM_per", e.g. "SOM_per_2023_d_0_5_QRF_pred_mean.tif".
+
+Download the compressed file from the website at the above URL for the property of interest, unpack it, and find the coverage of interest (depth and quantile).
+
+For example, mean prediction of pH at the surface 0-5 cm layer.
+
+# Load required packages.
+
+```{r pkg}
+require(terra)
+require(sf)
+```
+
+# Set up the directory for the input and output files.
+
+This is on my system, change to wherever you want to store the sample files. Note that in Unix-alike systems the `~` symbol refers to the user's home directory.
+
+```{r dirs}
+#| label: set-base-dir
+file.dir <- path.expand("~/tmp/BIS-4D/pH/")
+```
+
+# Load the file.
+
+```{r file}
+file.name <- "pH_KCl_d_0_5_QRF_pred_mean"
+file.ext <- ".tif"
+r <- rast(paste0(file.dir, file.name, file.ext))
+st_crs(r)$proj4string
+st_bbox(r)
+ext(r)
+res(r)
+dim(r)
+summary(r)
+```
+
+The coördinates are the Dutch national grid. Resolution is `r res(r)` meters in this system. The entire European territory of the country is covered. There are over 10k cells in the two axes.  Notice that `terra` does not load the entire map into memory, just what it needs for each operation.
+
+Show the map. Use an appropriate colour scheme. For pH this can approximate litmus paper: blue for acid, yellow for alkaline. Again, `terra` optimizes by showing a reduced-resolution map.
+
+```{r plot.all}
+plot(r, col=viridis::viridis_pal()(12))
+grid()
+```
+
+# Crop to a test area 
+
+To evaluate patterns we choose a 12 x 12 km sample area with good contrast.
+
+```{r crop}
+r.c <- rast()
+ext(r.c) <- c(156500, 182000, 438500, 458500)
+r.c <- crop(r, ext(r.c))
+ext(r.c)
+summary(r.c)
+dim(r.c)
+plot(r.c, col=viridis::viridis_pal()(12))
+```
+
+We see some sharp borders, some field patterns of various patch sizes, and some homogeneous areas. There are patches of different shapes as well as (semi-)linear features. The two rivers are the Nederrijn and the Waal
+
+# Save the map for pattern analysis.
+
+```{r save}
+f.name.c <- paste0(file.dir, file.name, 
+                        "_", ext(r.c)[1],
+                        "-", ext(r.c)[2],
+                        "_", ext(r.c)[3],
+                        "_", ext(r.c)[4],
+                        file.ext)
+writeRaster(r.c, f.name.c,
+            overwrite = TRUE)
+file.size(f.name.c)/1024^2
+```
+
+This test area's file size is `r round(file.size(f.name.c)/1024^2, 3)` Gb.
+
+# Compare with soil map 1:50k
+
+The spatial patterns at a coarser scale can be compared to the 1:50k soil map; this has a mimumum mappable area of 6.25 ha, e.g., 250 x 250 m, which is 10x coarser in each dimension than BIS-4D.
+
+https://service.pdok.nl/bzk/bro-bodemkaart/atom/bro-bodemkaart.xml
+
+This can be downloaded as a Geopackage (141.7 Mb!).
+
+```{r gpkg}
+file.name.ext <- "BRO_DownloadBodemkaart.gpkg"
+v <- vect(paste0(file.dir, file.name.ext))
+ext(v)
+summary(v)
+v.c <- crop(v, r.c)
+# unique(v.c$maparea_id)
+unique(v.c$maparea_collection)
+unique(v.c$pedologicalinterest)
+plot(v.c, "pedologicalinterest")
+```
+
+Not much help here. But we keep this code for reference.
