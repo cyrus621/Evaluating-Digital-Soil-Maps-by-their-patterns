@@ -13,7 +13,8 @@ quantile <- 4  # mean
 # Example: one property, all depth slices
 # voi.list.sg <- c("clay", "silt", "sand", "phh2o", "cec", "soc", "bdod", "cfvo", "nitrogen", "ocd")
 # depth.list <- paste0(c("0-5", "5-15", "15-30", "30-60", "60-100", "100-200"),"cm")
-voi <- 5 # example: cec
+voi <- 1 # example: cec
+voi.list.sg[voi]
 tmp <- lapply(1:6, function (i) {
   rmarkdown::render("SoilGrids250_WCS_import.Rmd", output_format = NULL, 
                     output_file = tempfile(), # don't write any output
@@ -53,5 +54,7 @@ tmp <- lapply(c(2,4,5,8), function (i) {
                                     depth.n = j))
   })
 })
+
+
 
 

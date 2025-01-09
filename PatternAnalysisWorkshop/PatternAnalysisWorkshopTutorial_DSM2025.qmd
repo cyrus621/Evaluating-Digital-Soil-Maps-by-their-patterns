@@ -160,6 +160,10 @@ Here we provide an example: ($1^\circ$~longitude x $1^\circ$~latitude) tiles of 
 
 You can create a similar files as GeoTIFF raster stack for a tile of your preference; see the scripts  `SoilGrids250_WCS_import.Rmd`, `GetTiles.R`, and `SoilGrids250_MakeRasterStack.Rmd`.
 
+Here is a map of the sample study area, obviously yours will be different.
+
+![Sample study area: 77-78E, 10-11N](./figs/OSM_7710_7811.png){#fig-localmoran}
+
 We process the raster stack in R with the `terra` package, which has the advantage that it only loads into computer memory as needed, and can load lower resolution automatically if that's appropriate.
 
 *Task:* Import the raster stack as `terra::SpatRaster` objects.
@@ -186,11 +190,11 @@ The raster stack has `r dim(sg)[3]` layers, this is six depth slices for each of
 
 *Task:* Plot one layers of all the properties.
 
-```{r}
+```{r fig.cap="All properties, surface layer"}
 #| label: fig-layer1-all-properties
 #| warning: false
 to.plot <- grep(depth.names[1], layer.names, fixed = TRUE)
-par(mfrow=c(3,3))
+par(mfrow=c(4,2))
 tmp <- terra::plot(sg[[to.plot]])
 par(mfrow=c(1,1))
 ```
@@ -199,7 +203,7 @@ We see a wide range of values and patterns.
 
 *Task:* Plot all layers of one property.
 
-```{r}
+```{r fig.cap="One property, all layers"}
 #| label: fig-all-layers
 #| warning: false
 to.plot <- grep(property.names[3], names(sg), fixed = TRUE)
@@ -1063,16 +1067,9 @@ Q: Referring to the descriptions of these metrics (above), what are the differen
 - Shannon Diversity
 - Shannon Evenness
 
-# Comparing patterns of classified maps {#sec-compare-classified}
+Question: Which maps in the DSM stack do you expect to have similar landscape metrics?
 
-Once we have various pattern metrics computed on different maps of the same area, an obvious question is "How much and how do they differ?". The question of "best" map is not (yet) asked.
-
-1. We can directly compare the metrics; see above (@sec-lsm).
-
-2. We can compare the adjacency structures.
-
-3. We can compare the intersections of the maps: use one as a reference and determine how well the other map reproduces the structure of the first; see below (@sec-vmeasure) . 
-
+˙
 # Supercells
 
 *"Superpixels"* is a generic name for grouping pixels with similar characteristics into larger assemblages. In the soil map context, the aim is to regionalize into areas with similar values of one or more raster layers.
@@ -1139,6 +1136,8 @@ ggplot(data=r.50) +
 ```
 
 The segments are the same in the two visualizations.
+
+*Challenge*: Experiment with different `compactness` and `k` parameters. Which seem to give a more "realistic" landscape pattern?
 
 # References
 

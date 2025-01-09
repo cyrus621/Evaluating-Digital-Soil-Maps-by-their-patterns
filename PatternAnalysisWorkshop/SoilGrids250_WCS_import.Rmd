@@ -19,7 +19,7 @@ params:
   lrc_long: 80
   lrc_lat: 21
   size: 1
-  voi.n: 6
+  voi.n: 8
   quantile.n: 4
   depth.n: 1
 ---
@@ -232,12 +232,12 @@ Convert the long/lat bounding box to the SoilGrids250 projection. We want the ex
 
 ```{r bbox}
 (bb.igh <- st_transform(bb.ll, crs.igh))         # reproject the polygon
-(bb.igh.coörds <-  st_coordinates(bb.igh)[,1:2]) # convert to coördinates, we only need 2D
+(bb.igh.coords <-  st_coordinates(bb.igh)[,1:2]) # convert to coördinates, we only need 2D
 #  convert to a bounding box, must order these as c(ulx, uly, lrx, lry)
-bb.sg <- as.vector(c(min(bb.igh.coörds[,"X"]), 
-                     max(bb.igh.coörds[,"Y"]), 
-                     max(bb.igh.coörds[,"X"]), 
-                     min(bb.igh.coörds[,"Y"])))
+bb.sg <- as.vector(c(min(bb.igh.coords[,"X"]), 
+                     max(bb.igh.coords[,"Y"]), 
+                     max(bb.igh.coords[,"X"]), 
+                     min(bb.igh.coords[,"Y"])))
 ```
 
 # Accessing SoilGrids250 WCS with GDAL
@@ -256,21 +256,23 @@ l1 <- newXMLNode("WCS_GDAL")
 l1.s <- newXMLNode("ServiceURL", wcs, parent=l1)
 l1.l <- newXMLNode("CoverageName", voi_layer, parent=l1)
 # Save to local disk
-xml.out <- "./sg.xml"
+xml.out <- "./sg2.xml"
 tmp <- saveXML(l1, file = xml.out)
-gdalinfo("./sg.xml")
+gdalinfo("./sg2.xml")
 ```
 
 Ignore the GDAL warnings, because we know the Homolosine projection used in SG250 is not in the GDAL database.
 
 Get the coverage:
 
+Note! Previously using the XML file name `sg.xml` two of the properties (`soc`, `bdod`) did not download! Changing the XML file name to `sg2.xml` seemed to fix this... why? Or did something change in the server?
+
 ```{r}
 (wcs <- paste(wcs_path,wcs_service,wcs_version,sep="&"))
 l1 <- newXMLNode("WCS_GDAL")
 l1.s <- newXMLNode("ServiceURL", wcs, parent=l1)
 l1.l <- newXMLNode("CoverageName", voi_layer, parent=l1)
-xml.out = "./sg.xml"
+xml.out = "./sg2.xml"
 tmp <- saveXML(l1, file = xml.out)
 (file.out <- paste0(dest.dir.sg.import, "/", voi_layer, '.tif'))
 gdal_translate(xml.out, file.out,

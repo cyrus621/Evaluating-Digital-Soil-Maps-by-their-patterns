@@ -1,6 +1,6 @@
 <WCS_GDAL>
-  <ServiceURL>https://maps.isric.org/mapserv?map=/map/bdod.map&amp;SERVICE=WCS&amp;VERSION=2.0.1&amp;DescribeCoverage</ServiceURL>
-  <CoverageName>bdod_0-5cm_mean</CoverageName>
+  <ServiceURL>https://maps.isric.org/mapserv?map=/map/cfvo.map&amp;SERVICE=WCS&amp;VERSION=2.0.1</ServiceURL>
+  <CoverageName>cfvo_0-5cm_mean</CoverageName>
   <CoverageOffering>
     <metadataLink metadataType="TC211" type="simple" href="https://maps.isric.org/mapserv?map=/map/phh2o.map&amp;request=GetMetadata&amp;layer=phh2o_0-5cm_mean" />
     <name>phh2o_0-5cm_mean</name>
@@ -66,4 +66,6 @@
   </CoverageOffering>
   <PreferredFormat>GEOTIFF_INT16</PreferredFormat>
   <NoDataValue>-32768</NoDataValue>
+  <BandCount>1</BandCount>
+  <BandType>Int16</BandType>
 </WCS_GDAL>
