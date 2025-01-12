@@ -1,0 +1,1145 @@
+---
+title: |
+  | Workshop -- Digital Soil Mapping 2025
+  | Pattern Analysis for Evaluating Soil Maps
+author:
+  - name: D G Rossiter
+    orcid: 0000-0003-4558-1286
+    email: david.rossiter@isric.org, d.g.rossiter@cornell.edu
+    url: https://www.css.cornell.edu/faculty/dgr2/pubs/index.html
+    affiliation:
+      - name: ISRIC-World Soil Information
+        city: Wageningen
+        state: NL
+      - name: Section of Soil & Crop Sciences, Cornell University
+        city: Ithaca
+        state: NY (USA)
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
+license: "CC-BY"
+bibliography: patterns.bib
+link-citations: true
+csl: /Users/rossiter/Zotero/styles/apa.csl
+knitr: 
+  opts_chunk: 
+    tidy: FALSE
+format: 
+    html:
+      fig-align: "center"
+      fig-height: 8
+      fig-width: 12
+      number-sections: true
+      theme: "spacelab"
+      df-print: "paged"
+      code-fold: false
+      toc: true
+      toc-float: true
+      warning: false
+    pdf:
+      toc: true
+      fig-align: "center"
+      fig-height: 6
+      fig-width: 10
+      number-sections: true
+      colorlinks: true
+      hyperrefoptions:
+        - linktoc=all
+        - pdfwindowui
+        - pdfpagemode=FullScreen
+    docx:
+      title: "Workshop DSM 2025: Pattern Analysis for Evaluating Soil Maps"
+      author: "D G Rossiter (ORCID 0000-0003-4558-1286)"
+      toc: true
+      number-sections: true
+      highlight-style: github
+---
+
+# Abstract
+
+This tutorial presents methods to evaluate the spatial patterns of the spatial distribution of soil properties and map units as shown in gridded maps produced by digital soil mapping (DSM). Methods include whole-map statistics, visually identifiable landscape features, level of detail, range and strength of spatial autocorrelation, landscape metrics (Shannon diversity and evenness, shape, aggregation, mean fractal dimension, and co-occurrence vectors), and spatial patterns of property maps classified by histogram equalization or user-defined cutpoints. The tutorial also shows how to aggregate raster maps into "supercells" to find landscape elements.. 
+
+This workshop uses an examples from SoilGrids v2.0, but the methods are applicable to any gridded DSM product or polygon map of soil classes.
+
+# Motivation
+
+Digital soil maps are usually evaluated by point-wise "validation statistics" [@piikkiPerspectivesValidationDigital2021]. This evaluation is quite limited from both the mapper's and map user's perspectives.
+
+*Internally*, from the mapper's perspective:
+
+1.  The evaluation is based on a necessarily limited number of observations, far fewer than the number of predictions (grid cells, pixels).
+2.  The evaluation points are very rarely from an independent probability sample [@Brus.etal2011].
+3.  Cross-validation and data-splitting approaches rely on a biased point set. Note that so-called "spatial cross-validation" does not solve the problem of biased sampling, just cross-validation biases caused by clustered spatial sampling [@mahoneyAssessingPerformanceSpatial2023].
+4.  Evidence has shown that widely different DSM approaches can result in maps with quite similar "validation statistics" but obviously different spatial patterns.
+
+*Externally*, from the map user's perspective:
+
+1.  Soils are managed as units, not point-wise.
+2.  Land-surface models often rely on 2D or 3D connectivity between grid cells.
+3.  More than a century of fieldwork has shown that soils occur in more-or-less homogeneous patches of various sizes, not as isolated pedons [@johnsonPedonPolypedon1963; @Fridland1974;  @boulaineRemarquesQuelquesNotions1982].
+4.  The map user may confuse *artefacts* of the mapping process with real soil patterns.
+
+# Setup
+
+## Packages
+
+These R packages will be used in the analysis. They must be pre-installed.
+
+First, packages in common use for many applications.
+
+```{r}
+#| label: r-packages-common
+options(warn = -1)
+# data wrangling
+library(dplyr, warn.conflicts=FALSE, quiet = TRUE)
+# colour palettes for graphics
+library(RColorBrewer, warn.conflicts=FALSE, quiet = TRUE)
+# ggplot graphics
+library(ggplot2, warn.conflicts=FALSE, quiet = TRUE)
+# multiple graphics in one plot
+library(gridExtra, warn.conflicts=FALSE, quiet = TRUE)
+```
+
+Second, packages in common use for spatial analysis.
+
+```{r}
+#| label: r-package-spatia
+# Robert Hijmans raster and vector data; also replaces `raster`
+library(terra, warn.conflicts=FALSE, quiet = TRUE) 
+# ggplot with terra SpatRaster objects
+library(tidyterra, warn.conflicts=FALSE, quiet = TRUE)
+# older package still needed to convert to `sp` objects
+library(raster, warn.conflicts=FALSE, quiet = TRUE) 
+# Pebesma et al. spatio-temporal data
+# Simple Features
+library(sf, warn.conflicts=FALSE, quiet = TRUE)          
+# `sp` spatial classes -- still needed for conversions
+library(sp, warn.conflicts=FALSE, quiet = TRUE)
+```
+
+Third, packages specific to the pattern analysis in this workshop:
+
+```{r}
+#| label: r-packages-workshop
+# variogram modelling
+library(gstat, warn.conflicts=FALSE, quiet = TRUE)
+# Co-occurrence vectors
+library(motif, warn.conflicts=FALSE, quiet = TRUE) 
+# multivariate distance metrics
+library(philentropy, warn.conflicts=FALSE, quiet = TRUE) 
+# FRAGSTATS-style metrics
+# this package is in active development, maybe use the development version
+# install.packages("remotes")
+# remotes::install_github("r-spatialecology/landscapemetrics")
+library(landscapemetrics, warn.conflicts=FALSE, quiet = TRUE) 
+# utility functions for raster* landscape objects)
+library(landscapetools, warn.conflicts=FALSE, quiet = TRUE)
+# aggreagate maps with supercells
+# this package is in active development, maybe use the development version
+# install.packages("supercells", repos = "https://nowosad.r-universe.dev")
+library(supercells, warn.conflicts=FALSE, quiet = TRUE)
+# Gray Level Co-occurence Matrices (GLCM)
+library(glcm, warn.conflicts=FALSE, quiet = TRUE)
+library(GLCMTextures, warn.conflicts=FALSE, quiet = TRUE)
+```
+
+## Directories
+
+*Task:* Set up the base directory.
+
+This is on my system, change to wherever you store your DSM GeoTIFF. Note that in Unix-alike systems the `~` symbol refers to the user's home directory.
+
+```{r dirs}
+#| label: set-base-dir
+file.dir <- path.expand("~/ds_reference/DSM2025/")
+```
+
+## DSM product to evaluate 
+
+The output of a DSM prediction can be saved as a GeoTIFF [@OGCGeoTIFFStandard2023]. 
+
+Here we provide an example: ($1^\circ$~longitude x $1^\circ$~latitude) tiles of the SoilGrids v2.0 product [@Poggio.etal2021a], with a set of soil properties at six standard depth slices. The example tile is from Dindigul District, Tamil Nadu State (India). It was selected for this workshop because it has a good contrast of many soil properties within the tile.
+
+You can create a similar files as GeoTIFF raster stack for a tile of your preference; see the scripts  `SoilGrids250_WCS_import.Rmd`, `GetTiles.R`, and `SoilGrids250_MakeRasterStack.Rmd`.
+
+Here is a map of the sample study area, obviously yours will be different.
+
+![Sample study area: 77-78E, 10-11N](./figs/OSM_7710_7811.png){#fig-localmoran}
+
+We process the raster stack in R with the `terra` package, which has the advantage that it only loads into computer memory as needed, and can load lower resolution automatically if that's appropriate.
+
+*Task:* Import the raster stack as `terra::SpatRaster` objects.
+
+```{r import.maps}
+#| label: import
+# the GeoTIFF file name
+sg.fn <- "lat1011_lon7778_stack.tif"
+(sg <- rast(paste0(file.dir, sg.fn)))
+```
+
+The properties and depth slices in this raster stack:
+
+```{r}
+#| label: stack-lauers
+# layers of the raster stack
+layer.names <- names(sg)
+tmp <- strsplit(layer.names, "_")
+(property.names <- unique(unlist(lapply(tmp, FUN = function(x) x[1]))))
+(depth.names <- unique(unlist(lapply(tmp, FUN = function(x) x[2]))))
+```
+
+The raster stack has `r dim(sg)[3]` layers, this is six depth slices for each of `r dim(sg)[3]/6`
+
+*Task:* Plot one layers of all the properties.
+
+```{r fig.cap="All properties, surface layer"}
+#| label: fig-layer1-all-properties
+#| warning: false
+to.plot <- grep(depth.names[1], layer.names, fixed = TRUE)
+par(mfrow=c(4,2))
+tmp <- terra::plot(sg[[to.plot]])
+par(mfrow=c(1,1))
+```
+
+We see a wide range of values and patterns.
+
+*Task:* Plot all layers of one property.
+
+```{r fig.cap="One property, all layers"}
+#| label: fig-all-layers
+#| warning: false
+to.plot <- grep(property.names[3], names(sg), fixed = TRUE)
+r.max <- ceiling(max(global(sg[[to.plot]], fun = "max", na.rm = TRUE)))
+r.min <- floor(min(global(sg[[to.plot]], fun = "min", na.rm = TRUE)))
+par(mfrow=c(2,3))
+tmp <- terra::plot(sg[[to.plot]], range = c(r.min, r.max))
+par(mfrow=c(1,1))
+```
+
+## Crop to a test area
+
+For quicker computation, we restrict the maps ($1^\circ$ x 1^\circ) to a quarter-map ($0.25^\circ$ x $0.25^\circ$), centred to show some interesting patterns.
+
+*Task:* Crop the raster stack to a quarter-map.
+
+```{r crop.to.quarter}
+#| label: crop
+test.tile.size <- 0.25  # degrees
+test.tile.x.offset <- 0.25 # lrc west from right edge
+test.tile.y.offset <- 0.25  # lrc north from bottom edge
+ext.crop <- round(as.vector(ext(sg)),2) # line up to .00 decimal degrees
+ext.crop["xmax"] <- ext.crop["xmax"] - test.tile.x.offset
+ext.crop["xmin"] <- ext.crop["xmax"] - test.tile.size
+ext.crop["ymin"] <- ext.crop["ymin"] + test.tile.y.offset
+ext.crop["ymax"] <- ext.crop["ymin"] + test.tile.size
+ext(ext.crop)
+sg4 <- crop(sg, ext(ext.crop))
+```
+
+*Task:* Repeat the plots, but just for the quarter-tile.
+
+*Task:* Plot one layers of all the properties.
+
+```{r}
+#| label: fig-layer1-properties-1/4
+#| warning: false
+to.plot <- grep(depth.names[1], layer.names, fixed = TRUE)
+par(mfrow=c(3,3))
+tmp <- terra::plot(sg4[[to.plot]])
+par(mfrow=c(1,1))
+```
+
+We see a wide range of values and patterns.
+
+*Task:* Plot all layers of one property.
+
+```{r}
+#| label: fig-silt-layers
+#| warning: false
+to.plot <- grep(property.names[3], layer.names, fixed = TRUE)
+r.max <- ceiling(max(global(sg4[[to.plot]], fun = "max", na.rm = TRUE)))
+r.min <- floor(min(global(sg4[[to.plot]], fun = "min", na.rm = TRUE)))
+par(mfrow=c(2,3))
+tmp <- terra::plot(sg4[[to.plot]], range = c(r.min, r.max))
+par(mfrow=c(1,1))
+```
+
+## Transform to a metric CRS
+
+Landscape metrics require approximately *equal-area* grid cells, so the raster stack, currently in a geographic Coördinate Reference System (CRS), must be projected to a metric system. CRS in R are most easily expressed by their EPSG code.
+
+CRS definitions and EPSG codes can be found at at the [EPSG Geodetic Parameter Dataset](https://epsg.org). A reasonable choice for areas narrower (longitude) than about $6^\circ$ is the Universal Transmercator (UTM) system, which covers a $6^\circ$-wide latitude range with about a $0.5^\circ$ buffer on each edge. Since our test area is $1^\circ$-wide this is a good choice.
+
+Several datums (forms of the Earth, Earth centre origin) can serve as the basis for the UTM CRS. A common choice is the WGS84 datum. This CRS us used by the Global Positioning System (GPS). It is accurate to within 1 m within each $6^\circ$ UTM slice, of which there are 60.
+
+The EPSG codes for these have the format `326xx`, where `xx` is the UTM zone number.
+
+Determine the UTM zone from the longitude of the central meridian of the raster stack.
+Use this to determine the corresponding EPSG code:
+
+```{r}
+#| label: get.utm 
+# a function to find the correct UTM zome
+long2UTM <- function(long) { (floor((long + 180)/6) %% 60) + 1 }
+# find the zone from the central meridian
+utm.zone <- long2UTM(st_bbox(sg)$xmin + 
+                       0.5*(st_bbox(sg)$xmax - st_bbox(sg)$xmin))
+cat(paste("UTM Zone", utm.zone))
+epsg.utm <- paste0("epsg:326", utm.zone)
+cat(paste("CRS code:", epsg.utm))
+```
+
+*Task:* Resample the maps to the UTM projection, at nominal 250 m grid cell resolution.
+
+Notes:
+
+1.  The interpolation method used by `terra::project` is, by default, bilinear. This is appropriate for continuous-valued maps.
+2.  Specify the grid cell size with the `res` argument to `terra::project`. SoilGrids maps are nominally at this scale, although presented in geographical coördinates and the Homosoline projection.
+
+```{r}
+#| label: resample
+st_bbox(sg4)
+sg4.utm <- terra::project(sg4, epsg.utm, 
+                         res = c(250, 250), method = "bilinear")
+st_bbox(sg4.utm)
+```
+
+# Characterizing patterns
+
+A first step is to characterize maps by statistical measures. This gives objective information about their spatial patterns.
+
+The methods to characterize patterns are different for maps of *continuous* variables (@sec-continuous) and *classified* (categorical) variables (@sec-classified).
+
+# Characterizing patterns -- Continuous {#sec-continuous}
+
+These are methods that require continuous values on at least an interval scale, and usually a ratio scale (with a true zero). Some properties, e.g., pH, do not have a true zero, so they are an interval scale. Other properties such as coarse fragment volume have a true zero, and one can speak of one location being "twice as stony" than another, for example.
+
+## The global variogram {#sec-vgm}
+
+The variogram (or a correlogram) can be used to characterize the degree of spatial continuity and the "roughness" of a continuous property map, averaged across the entire map. Note that this depends on the grid cell size in two ways:
+
+1.  Any pattern at finer resolutions has been removed;
+2.  The values in grid cells may be produced by punctual or block methods. Block methods smooth values, so that the variogram sill will necessarily be lower than for punctual predictions. Also, the range may be longer.
+
+In this section we compute short-range variograms. These reveal local structure. In DSM maps the variogram is typically unbounded, but we don't care about the long-range structure when we are evaluating patterns. The parameters of the local structure characterize the fine-scale variability.
+
+Note: Variograms are typically produced separately for each mapped soil property. To characterize an inherent landscape scale, a number of properties can be combined by principal component analysis (PCA) and the first component (PC1) can be characterized.
+
+*Task*: Convert the `terra::SpatRaster` raster stack to an `sp::SpatialPointsDataFrame`.
+
+and then to an `sf:sf` stack in order to compute variograms. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
+
+Note: There is (so far) no direct conversion from `terra::SpatRaster` objects to `sf:sf` objects. 
+
+```{r}
+dim(sg4.utm)
+# keep the coordinates in the data frame
+sg4.sp <- as.data.frame(sg4.utm, xy = TRUE)
+# convert to SpatialPointsDataFrame by indentifying the fields that are coordinates
+coordinates(sg4.sp) <- ~ x + y
+class(sg4.sp)
+dim(sg4.sp)
+```
+
+Now convert to Simple Features (`sf`) objects, one per property and depth:
+
+```{r}
+sg4.sf <- lapply(1:dim(sg4.sp)[2], function(i) {
+   st_as_sf(sg4.sp[,i])
+})
+class(sg4.sf); length(sg4.sf)
+# examine one `sf` object in the list
+head(sg4.sf[[1]])
+```
+
+Each item in the list `sg4.sf` is a Simple Features points object.
+
+*Task:* Set the initial parameters for empirical variogram as the resolution. 
+
+If the bin width is the resolution, we get one-grid-cell spatial correlations.
+
+```{r}
+#| label: variogram_parameters
+range.init <- 1000  # estimated range, m 
+cutoff.init <- range.init*5  # cutoff for empirical variogram, m
+width.init <- 250   # bin width
+```
+
+
+*Task:* Compute and display the empirical variograms for some properties and layers.
+
+Here is an example with the first layer of the raster stack, accessed by the `[[1]]` syntax.
+You can substitute any property and layer, according to your interest.
+You can also use one of the layer names to specify the raster layer to analyse, e.g. `[["cfvo_5-15cm_mean"]]`.
+
+```{r}
+#| label: variogram_empirical
+#| fig-width: 8
+#| fig-height: 4
+print(layer.names)
+names(sg4.sf[[1]])
+# give the `sf` object a simple name, also the target variable
+var <- sg4.sf[[1]]
+names(var)[1] <- "z"
+v.sg <- variogram(z ~ 1, loc = var, 
+                  cutoff=cutoff.init, width=width.init)
+#
+plot(v.sg, main = layer.names[1])
+```
+
+
+*Task:* Fit a variogram model to the empirical variogram.
+
+The differences can be quantified by the parameters of a fitted variogram model. We try an exponential model because (1) it has the simplest theory, and (2) we expect to not reach a sill within the short range investigated.
+
+We use the `fit.variogram` method to adjust an initial estimate by weighted least squares (linear in the number of point-pairs and inverse squared in the separation disatance, i.e., the default `gstat` method 7). The estimated sill is the maximum $\gamma$ in the empirical variogram.
+
+```{r}
+#| label: variogram_model
+vm.sg <- vgm(0.8*max(v.sg$gamma), "Exp", range.init, 0)
+print(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
+```
+
+```{r}
+#| label: fitted_variogram_model
+#| fig-width: 8
+#| fig-height: 4
+plot(v.sg, model=vmf.sg, main = layer.names[1], 
+     xlab = "separation m", ylab = expression(paste(Delta, plain(pH)^2)))
+```
+
+Q: How well does the fitted model match the empirical variogram? If the fit has some problems, what could be a solution?
+
+## Moving-window local association {#sec-mwla}
+
+The local spatial structure may not be consistent across the mapped area -- that is, the assumption of second-order stationarity may be (and often is) false.
+This means that the average variogram, computed over that area, is misleading. 
+
+The gridded maps have so many cells that it's possible to compute **moving-window variograms**, as in the VESPER program [@minasnyVESPERVariogramEstimation2005] developed for precision agriculture applications. This will show if the local spatial association is consistent across the map. This also allows maps to be compared window-by-window. I have not (yet?) implemented this in R, so we must use another method to assess moving-window local spatial association.
+
+A quick way to see the local degree of autocorrelation is with Moran's I applied to a window of appropriate size around each grid cell, using the `terra::autocor` function.
+
+Moran's I is defined as:
+
+$$  I = \frac{n}{\sum_i \sum_j w_{ij}} \frac{\sum_i \sum_j w_{ij}(y_i - \bar{y})(y_j - \bar{y})}{\sum_i (y_i - \bar{y})^2}$$
+
+where $y_i$ is the value of the variable in the $i$th of $n$ neighbouring grid cells, $\bar{y}$ is the global mean of the variable, $w_{ij}$ is the spatial **weight** of the link between the target cell $i$ and its neighbour cell $j$. The expected value of Moran's I is $-1/(n-1)$ if the pattern of the response variable is random, i.e., no spatial correlation. So for a $5 \times 5$ neighbourhood the expected value is $-1/24 = -0.041\bar{6} \approx 0$.
+
+The second term numerator is the weighted covariance. Its denominator normalizes by the variance. The first term normalizes by the sum of all weights, so that the test is comparable among tests with different numbers of neighbours and using different weightings.
+
+*Task:* Construct a weights matrix for local Moran's I, for a $5 \times 5$ grid cell neighbourhood, i.e., up to $\pm \; 500 \; m$ in the N/S directions and $\pm \; 500\times\sqrt{2} \approx 707 \; m$ along the diagonals. 
+
+We determine the weights matrix for Moran's I from the fitted global variogram of the previous section and the grid cell size. Weights are the one minus the semivariance at each cell distance, so that the centre pixel receives the maximum weight. 
+
+Here is a function to make an odd-sized square window (default 5 x 5) with weights taken from the variogram model, scaled to the resolution. 
+
+```{r make.weights}
+make.weights <- function(n = 5, res = 250, vgm) {
+  m <- matrix(0, nrow = n, ncol = n)
+  center <- ceiling(n / 2)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      # distance in cell units, multipled by the grid resolution
+      m[i, j] <- sqrt((i - center)^2 + (j - center)^2)*250
+    }
+  }
+  w <- 1 - variogramLine(vm.sg, dist_vector = m)
+  return(w)
+}
+```
+
+@fig-localmoran shows the Euclidean distance weights in a 5 x 5 window.
+
+![Computation of local Moran's neighbour weights (credit: Diana Collazo, ISRIC)](./figs/localMoranWeights.png){#fig-localmoran}
+
+
+Here is a function to use this to compute and display the moving-window autocorrelation for any odd window size. This uses the `terra::autocor` method, applied to a weighted window.
+
+```{r}
+show.autocor <- function(n = 5) {
+  sg.utm.autocor <- terra::autocor(sg4.utm[[1]], 
+                                   w=make.weights(n, res(sg4.utm)[1], vmf.sg), 
+                                   method="moran", global = FALSE)
+  terra::plot(sg.utm.autocor, main = paste("SG250, Moran's I", n, "x", n), 
+              col = rev(hcl.colors(32, palette = "RdYlGn")))
+}
+```
+
+*Task:* Compute and display the moving-window autocorrelation, for a 5 x 5 window, in this case 1250 x 1250 m; a 7 x 7 window (1500 x 1500); and a 9 x 9 window (1750 x 1750).
+
+
+```{r}
+#| label: moving-window
+show.autocor(5)
+show.autocor(7)
+show.autocor(9)
+```
+
+These are all very far from the random value $-0.041\bar{6}$. Both maps show hot spots with much larger local autocorrelation than the map average. Some areas have almost none or even more dispersed than random (negative values).
+
+To appreciate the local Moran's I values, here is the global Moran's I with the same weights matrix. These are the averages of all the local (window) Moran's I.
+
+```{r}
+#| label: global-autocor
+global.moran <- function(n) {
+  print(paste("SG:", round(terra::autocor(sg4.utm[[1]], 
+                                   w=make.weights(n, res(sg4.utm)[1], vmf.sg),
+                                   method="moran", global = TRUE), 3)))
+}
+global.moran(5)
+global.moran(7)
+global.moran(9)
+```
+
+
+Q: Is the pattern of local autocorrelation the same across the map?
+
+Q: How does this change as the window size increases?
+
+## Grey Level Co-occurrence Matrix (GLCM) {#sec-glcm}
+
+The idea of characterizing the "texture" of an image has a long history in image processing @haralickTexturalFeaturesImage1973. One method for this is the **Grey Level Co-occurrence Matrix**. Here the "grey levels" (GL) refer to pixel values -- in our context, the values of the soil property, typically quantized (sliced) to some precision. The "co-occurrence" (C) refers to the statistical properties within some window, either isotropic or weighted in some direction. The GLCM shows how often different combinations of values ("grey levels") occur over local windows within the map. These local textures can be related to landscape ecology, in our case the local spatial structure of the values of a soil property. Many statistics can then be computed to characterize this matrix.
+
+GLCM statistics, in the context of DSM, show the **local** statistical properties of a window as it moves across the map. These can be interpreted as, for example, homogeneity or contrast within a window, thereby revealing areas of the map with different spatial structure.
+
+See @hall-beyerGLCMTextureTutorial2017 for a tutorial introduction to the construction, use, and interpretation of GLCM-based textures, and @hall-beyerPracticalGuidelinesChoosing2017 for guidelines on choosing appropriate GLCM-based textures in the context of land cover classification.
+
+### Quantization {#sec-glcm-quant}
+
+The GLCM is constructed from a moving-window analysis of the map, with the (odd-sized) window considered as a matrix of grid cells. 
+
+Before analysis the original map is quantized into a fixed number of levels, by analogy with remote sensing image processing, typically from 16 to 64 levels. Quantization is computed by slicing the value range into equal intervals and replacing the original values with the integer level number.
+
+The GLCM approximates the joint probability distribution of the levels of two pixels separated by the specified shift(s), that is, how likely it is that these two levels occur together in the window. We would like to avoid zero probabilities. If there are too many levels, many pairs of  will not occur. So we should pick a number of levels for quantization which avoids this.
+
+The following code shows how to quantize the SoilGrids map into 16 levels.
+This will be done automatically by the `glcm` function, see below, here we show how this process works. In the actual computation of statistics we will use more levels.
+
+```{r cut.matrix}
+range(values(sg4.utm[[1]], na.rm = TRUE))
+sg4.quant <- cut(values(sg4.utm[[1]]), breaks = 16, labels = 0:15, include.lowest = TRUE)
+table(sg4.quant)
+# show the breakpoints
+levels(cut(values(sg4.utm[[1]]), breaks = 16, include.lowest = TRUE))
+sg4.utm.quant <- sg4.utm[[1]]
+values(sg4.utm.quant) <- sg4.quant
+plot(sg4.utm.quant, col = rainbow(16), main = paste(layer.names[1], ", 16 levels"))
+```
+
+It is difficult to see just from this map if the GLCM will have too many zeroes, or if a finer quantization could be supported.
+
+### Constructing a GLCM
+
+This section shows how a GLCM is constructed. We take a simple example of an 8-class quantization and a 5x5 window near the middle of the map, and a one-cell rightward shift.
+
+The `make_glcm` method is provided by a different GLCM package: `GLCMTextures`.
+
+```{r fig.caption = "Example GLCM"}
+#| label: example-glcm
+# obtain the bounding box of the test area from cell numbers
+xy <- xyFromCell(sg4.utm[[1]], cellFromRowCol(sg4.utm[[1]], 40:45, 40:45))
+# crop to this box
+w.sg <- crop(sg4.utm[[1]], xy)
+test.quant <- cut(values(w.sg), breaks = 8, 
+                  labels = 0:7, include.lowest = TRUE)
+# the classes of the cut
+(l.8 <- levels(cut(values(w.sg), breaks = 8, include.lowest = TRUE)))
+# add the class labels to the test map
+w.sg.8 <- w.sg; values(w.sg.8) <- test.quant
+# show the property and the derived grey levels together
+par(mfrow = c(1,2))
+plot(w.sg, main = "property value")
+plot(w.sg.8, main = "grey level", col = grey.colors(8))
+par(mfrow = c(1,1))
+# set up the matrix on which to compute the GLCM
+(test.matrix <- as.matrix(w.sg.8, wide = TRUE))
+glcm <- GLCMTextures::make_glcm(test.matrix,  
+          n_levels = 9, shift = c(1, 0), # shift one cell to the right
+          normalize = FALSE )
+print(glcm)
+sum(diag(glcm))/sum(glcm)
+```
+
+The original matrix is 5 x 5 cells; the GLCM is 9 x 9 levels.
+
+In this example `r round(sum(diag(glcm))/sum(glcm),2)` of the adjacenies are on the GLCM diagonal, i.e., with no change in level based on the 8-level GLCM. The off-diagonals show how many shifts in class, the large the more abrupt the difference.
+
+### Computation of GLCM texture measures {#sec-glcm-comp}
+
+From the quantized matrix, the GLCM can be constructed for one or more specified offsets, called a **shift**. These can be either along the row, column, or diagonal, as specified by the analyst. Each element at position  $(i,j)$ in the GLCM counts how many times a pixel with value $i$ and  a value $j$ occur together with the specified offset. So for example a map quantized with 32 levels will have a 32 x 32 GLCM.
+
+If multiple shifts are specified, the texture statistics are computed for all the specified shifts, with the result for a pixel being the mean of these statistics for each pixel.
+
+The GLCM describes the spatial relationships of (quantized) values in the map; this can be considered "texture". Many statistics can be computed on the GLCM. Among the relevant statistics for pattern analysis are the mean, variance, homogeneity, contrast, entropy, dissimilarity, second moment, and correlation of the GLCM. 
+
+The R `glcm` package computes these metrics. It requires an object in the older `raster` package format.
+
+```{r glcm}
+# convert to the older `raster` format
+sg4.utm.raster <- raster(sg4.utm)
+```
+
+We choose to compute the mean statistics for four shifts: one pixel by row, column, and both diagonals. If there is orientation (anisotropy) evident in the map, just one shift could be used to characterize the shifts in that orientation.
+
+We choose to compute on a 5 x 5 window (both dimensions must be odd). Since the resolution is already coarse (250 m) this will characterize the texture in $1.5625 ~ \mathrm{km}^2$ squares
+
+```{r measures}
+stat.list <- c("mean","variance","homogeneity","contrast",
+               "entropy","dissimilarity","second_moment",
+               "correlation")
+glcm.sg <- rast(glcm(sg4.utm.raster,
+                   window = c(5, 5),
+                   n_grey = 32, # number of levels in the GLCM
+                   shift=list(c(0,1), c(1,1), c(1,0), c(1,-1)), # all directions
+                   na_opt = "ignore",
+                   statistics = stat.list))
+class(glcm.sg)
+summary(glcm.sg)
+plot(glcm.sg)
+```
+
+### Interpretation {#sec-glcm-interp}
+
+Each of the texture metrics quantifies some aspect of the texture. For a thorough explanation see @hall-beyerGLCMTextureTutorial2017 and @hall-beyerPracticalGuidelinesChoosing2017. Here we examine a few of them.
+
+**Mean** and **Variance** represent the overall inhomogeneity of the window. The mean is the mean change in the selected shift(s) and the variance is how variable are the changes.
+
+$$\mu = \sum_{i,j = 0}^{N-1} i \cdot P_{i,j}$$
+
+```{r fig.caption = "GLCM mean, 5 x 5 grid cells"}
+plot(glcm.sg[["glcm_mean"]], main = "GLCM mean", 
+     col=(sp::bpy.colors(32)))
+```
+
+Areas with the higher values have more and/or larger differences between neighbours. 
+
+$$\sigma^2 = \sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - \mu)^2$$
+
+```{r fig.caption = "GLCM variance, 5 x 5 grid cells"}
+plot(glcm.sg[["glcm_variance"]], main = "GLCM variance", 
+      col=(cm.colors(32)))
+```
+
+
+**Contrast** is the amount of local variation in a window, with emphasis (squared distance) on the off-diagonals of the GLCM, i.e., larger changes in the quanta level.
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot (i - j)^2$$
+
+
+where $P_{i,j}$ is the proportion of the class $i$ and $j$ co-occurrence in the window.
+
+```{r fig.caption = "GLCM contrast, 5 x 5 grid cells"}
+plot(glcm.sg[["glcm_contrast"]], main = "Contrast", 
+     col=(topo.colors(32)))
+```
+
+There are "hot spots" of high contrast, i.e., areas in the map with a relatively wide range of propertu values. Note that this shows that the assumption of second-order stationarity used in the variogram analysis @sec-vgm is definitely not correct. 
+
+A variant is the **dissimilarity**, where the weights are linear away from the diagonal, rather than quadratic:
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot |i - j|$$
+
+```{r fig.caption = "GLCM dissimilarity, 5 x 5 grid cells"}
+plot(glcm.sg[["glcm_dissimilarity"]], main = "Dissimilarity", 
+     col=(topo.colors(32)))
+```
+
+**Entropy** is a measure of information within a window. It accounts for the number of different levels in the window (the others will have "probability" zero) and their relative frequencies. More classes and more even distribution of classes results in increased entropy. This can be thought of as "lack of information".
+
+$$\sum_{i,j = 0}^{N-1} P_{i,j}\cdot -\ln(P_{i,j})$$
+
+```{r fig.caption = "GLCM entropy, 5 x 5 grid cells"}
+plot(glcm.sg[["glcm_entropy"]], main = "Entropy", 
+     col=(topo.colors(32)))
+```
+
+*Challenge*: compute the GLCM statistics for different window sizes.
+
+# Characterizing patterns -- Classified {#sec-classified}
+
+The spatial unit of conventional (legacy) maps is the polygon, not the grid cell. These maps show a discrete number of legend entries (classes), each with one to many polygons. In the soil survey context these are called **mapping units**, and generally are soil classes, possibly with some landscape features (e.g., erosion class, slope class) as part of the definition. Some mapping units may represent water bodies and various other kinds of non-soil.
+
+Here we continue with the continuous property maps of a single property.
+To use these techniques on continuous property maps, the maps must be **sliced** (discretized) into classes. There are several choices:
+
+- meaningful limits, matching some thresholds known to be important for a soil function;
+- equal intervals;
+- histogram equalization.
+
+For equal intervals or histogram equalization, the cutpoints should be the same for all maps, and therefore derived from their combined distribution of values. We illustrate the process here, but do not use it for the landscape metrics examples later on in the tutorial.
+
+## Classifying by histogram equalization {#sec-hist-equal}
+
+This section shows how to classify by histogram equalization; the results will not be used later in the tutorial. Instead, we will use meaningful limits (see @sec-mean-limit) to slice the map.
+
+*Task:* Slice the map by histogram equalization
+
+First, compute the histogram equalization and display the limits on a histogram plot:
+
+```{r}
+#| label: histo-equal
+#| fig-width: 8
+n.class <- 8
+# combined values
+values.sort <- sort(values(sg4.utm[[1]]))
+range(values.sort)
+# number of pixels not NA
+n.nna <- length(values.sort) - sum(is.na(values.sort))
+# how many pixels in each bin
+(cut.positions <- round(n.nna/n.class))
+# the cut positions
+(cuts <- values.sort[cut.positions * 1:(n.class-1)])
+# integer values for the cuts
+cuts[1] <- floor(cuts[1]); cuts[n.class-1] <- ceiling(cuts[n.class-1])
+cuts[2:n.class-2] <- round(cuts[2:n.class-2])
+print(cuts)
+hist(values.sort, breaks=36, main="Histogram equalization",
+     xlab = layer.names[1])
+abline(v=cuts, col="blue", lwd=2)
+```
+
+In this plot each slice has the same number of pixels.
+
+*Task:* slice the map with histogram equalizatioj and display the result.
+
+Slice the map:
+
+```{r}
+#| label: classify-raster-hist
+# `rcl` is a vector with the lowest limit 0, the cuts, and the maximum valie
+#       so that all values are classified
+sg4.class <- terra::classify(sg4.utm[[1]], 
+                             rcl= c(0, cuts, ceiling(max(values.sort))))
+table(values(sg4.class))
+names(sg4.class) <- "class"
+```
+
+Display the classified map:
+
+```{r}
+#| label: show.classified-hist
+terra::plot(sg4.class,
+            type="classes",
+            main=layer.names[1])
+```
+
+Q: Describe the patterns of the map.
+
+Q: How would these change with different class numbers or limits?
+
+## Classifying by meaningful limits {#sec-mean-limit}
+
+For soil properties we usually have limits that correspond to approximate thresholds in land use. For example, in the case of pH, we can refer to extension or crop consultant publications, or environmental models. Unlike in histogram equalization, the number of classes depends on the user requirements.
+
+For example, the [Cornell pH test kit](https://www.nnyagdev.org/PDF/SoilpH.pdf) has a "Wide Range Kit"  measuring the soil pH over the range of 4.0--8.6, in increments of 0.2 for an experienced user. Here we will be somewhat less precise, and slice the map in increments of 0.4 pH.
+
+*Task:* slice the map of surface soil pH and display with a common colour ramp.
+
+Find the combined range and divide into classes of 0.4 pH, starting and ending on even units of 0.4.
+
+Set up the cut points.
+
+```{r}
+#| label: ph.classes
+# find the layer number for this property
+(ix.ph05 <- which(layer.names == "phh2o_0-5cm_mean"))
+(cuts <- seq(floor(min(values(sg4.utm[[ix.ph05]], na.rm = TRUE))), 
+             ceiling(max(values(sg4.utm[[ix.ph05]], na.rm = TRUE))), 
+             by = 0.4))
+```
+
+Slice the map of surface soil pH:
+
+```{r}
+#| label: classify-raster-cuts
+sg.ph.class <- terra::classify(sg4.utm[[ix.ph05]], rcl= cuts)
+table(values(sg.ph.class))
+names(sg.ph.class) <- "class"
+```
+
+Display it:
+
+```{r}
+#| label: show.classified-cuts
+terra::plot(sg.ph.class,
+            col=sp::bpy.colors(length(cuts)), type="classes",
+            main="SG2 pH 0.2 units")
+```
+
+Q: Describe the pattern of the map.
+
+Q: How would the maps change with wider or narrower class intervals? You are welcome to experiment!
+
+## Co-occurrence matrices {#sec-coma}
+
+One question for a classified map is which classes tend to be adjacent to each other. In the case of the pH map, we might expect adjacent classes to be in the pH sequence, but maybe not -- there may be abrupt transitions of parent materials, for example.
+
+A co-occurrence *matrix* counts all the pairs of adjacent cells for each category in a local landscape, as a cross-classification matrix. 
+
+*Task:* Compute the co-occurrence *matrices*, using Queen's Case neighbours (i.e., diagonal links are considered).
+
+Co-occurrence vectors are computed with the `lsp_signature` function of the `motif` package, specifyin `coma` = co-occurrence matrix as the signature.
+
+```{r}
+#| label: coma
+coma.ph <- lsp_signature(sg.ph.class, type="coma", neighbourhood = 8)
+head(coma.ph.matrix <- as.matrix(coma.ph$signature)[[1]])
+# proportion with adjacent of the same class
+sum(diag(coma.ph.matrix))/sum(coma.ph.matrix)
+```
+
+The proportion of neighbour pixels with the same class as the corresponding centre pixel is
+`r round(sum(diag(coma.ph.matrix))/sum(coma.ph.matrix),2)`.
+
+Q: Describe the co-occurrence structure. What does this imply for the spatial pattern?
+
+## Co-occurrence vectors {#sec-cove}
+
+The **Co-occurrence vector** "COVE" proposed by @nowosadSpatialAssociationRegionalizations2018
+summarizes the _entire adjacency structure_ of a map and can be used to compare map structures. This is a normalized form of the co-occurrence matrix (see the previous section). 
+Normalization  means the matrix sums to 1, and so is independent of the number of grid cells in the map. 
+Therefore this vector can be considered as a probability vector for the co-occurrence of different classes. 
+
+*Task:* Compute the co-occurrence *vectors*, using Queen's Case neighbours.
+
+Co-occurrence vectors are computed with the `lsp_signature` function of the `motif` package, specifying `cove` (normalized co-occurrence vector) as the signature.
+
+```{r}
+#| label:  metrics.cove
+# normalized co-occurence vector 8 x 8
+print(cove.ph <- lsp_signature(sg.ph.class, type="cove", neighbourhood = 8))
+```
+
+## Integrated co-occurrence vector {#incove}
+
+An *integrated* co-occurrence vector considers *several input layers*, for example representing different soil properties of the same area.     
+
+To examine this we need another soil property map. Let's use silt of the 0--5~cm layer. We process this as we did for the pH map. Here the "meaningful limits" for silt content are 5% intervals. Since the SG2 map is expressed in $\mathrm{g} \; \mathrm{kg}^{-1}$, these are intervals of 50 $\mathrm{g} \; \mathrm{kg}^{-1}$.
+
+```{r}
+#| label: silt-map
+#| fig-width: 8
+(ix.silt05 <- which(layer.names == "silt_0-5cm_mean"))
+summary(sg4.utm[[ix.silt05]])
+(cuts <- seq(floor(min(values(sg4.utm[[ix.silt05]]-50, na.rm = TRUE))), 
+             ceiling(max(values(sg4.utm[[ix.silt05]]+50, na.rm = TRUE))), 
+             by = 50))
+sg.silt.class <- terra::classify(sg4.utm[[ix.silt05]], rcl= cuts)
+table(values(sg.silt.class))
+names(sg.silt.class) <- "class"
+plot(sg.silt.class, col = topo.colors(11),
+     main = layer.names[ix.silt05])
+```
+
+This map has much larger homogeneous areas than the pH map.
+
+Examine this single map's co-occurrence matrix and vector:
+
+```{r}
+#|.label: coma-cove
+coma.silt <- lsp_signature(sg.silt.class, type="coma", neighbourhood = 8)
+print(coma.silt.matrix <- as.matrix(coma.silt$signature)[[1]])
+sum(diag(coma.silt.matrix))/sum(coma.silt.matrix)
+# the co-occurrence vector
+(cove.silt <- lsp_signature(sg.silt.class, type="cove", neighbourhood = 8))
+```
+
+Most of the adjacencies are to the same class, or the adjacent class.
+
+*Task:* Compute the distance between the co-occurrence vectors for pH and silt:
+
+```{r}
+#| label: distance-ph-silt
+cove.df <- data.frame(cove.ph)$signature[[1]][1,]
+cove.df <- rbind(cove.df, cove.silt$signature[[1]][1,])
+cove.dists <- round(
+  philentropy::distance(cove.df, method = "jensen-shannon", 
+                        use.row.names =TRUE, 
+                        as.dist.obj = FALSE,
+                        diag = FALSE) ,4)
+print(cove.dists)
+```
+
+## Clustering pattern differences
+
+Once a pattern metric is shown across a map, a natural question is whether different areas of the map have different patterns. We illustrate this with the pattern of the integrated co-occurrence vectors.
+
+Any size window can be used. If too small the result is erratic, if too large, local differences may be missed.
+
+*Task:* Identify which parts of the SG2 map have similar *integrated co-occurrence* pattern differences, considering both properties. For this we use 4 x 4 km windows, i.e., 16 x 16 grid cells.
+
+Again we use `lsp_signature`, type `"incove"`, but now specifying a `window` size within which to compute the pattern.
+
+```{r}
+#| label: incove.dist
+sg.ph.silt.class <- c(sg.ph.class, sg.silt.class)
+incove.sg <- lsp_signature(sg.ph.silt.class,
+                              type = "incove",
+                              neighbourhood = 8,
+                              ordered = TRUE,  # the pH classes are ordered
+                              window = 16,
+                              normalization = "pdf")  #sum to one
+summary(incove.sg.dist <- lsp_to_dist(incove.sg,
+                                 dist_fun = "jensen-shannon"))
+dim(incove.sg.dist)
+```
+
+Here we have defined `r dim(incove.sg.dist)[1]` x `r dim(incove.sg.dist)[1]` distances, i.e., paired distances between each of the windows' signatures.
+
+Are any of these distances similar? Let's see with a *cluster analysis*.
+
+*Task:* Make a hierarchical clustering of the distances between the integrated co-occurrence vectors of the windows.
+
+The `hclust` function can cluster using many methods to build the dendrogram. Here we use Ward's D2 method, which aims at finding compact, spherical clusters.
+
+```{r}
+#| label: incove.cluster
+sg.hclust <- hclust(incove.sg.dist, method = "ward.D2")
+plot(sg.hclust, main = "clusters of distance between `incove`")
+```
+
+*Task:* Define classes of similar distances by cutting the dendrogram.
+
+Examining the dendrogram, it seems that height `h = 0.5` is a good cutting point, which captures the main differences. Alternatively, a set number of clusters can be requested with the `k` argument.
+
+```{r}
+#| label: incove.cluster.cut
+#| fig-width: 8
+sg.clusters <- as.factor(cutree(sg.hclust, h = 0.5))  # cutpoint by visual inspection
+levels(sg.clusters)
+sg.grid.sf = lsp_add_clusters(incove.sg, sg.clusters)
+sg.grid.sf$clust <- as.factor(sg.grid.sf$clust)
+my.pal <- colorRampPalette(brewer.pal(8, "Accent"))(length(levels(sg.grid.sf$clust)))
+ggplot(data = sg.grid.sf) + 
+  geom_sf(aes(fill = clust), alpha = 0.7) +
+  scale_fill_discrete(type = my.pal) +
+  labs(title = "Clusters: distance between integrated co-occurrence vectors",
+       fill = "cluster")
+```
+
+This shows which areas of the map have similar integrated co-occurrence patterns.
+These can be interpreted as similar soils, in the sense that the sum of propertied defines a soil type.
+
+Compare this to a visual inspection of the patterns, next to the 7 x 6 cluster grid.
+
+```{r}
+#| label: incove-clusters-map-3
+p1 <- ggplot(data = sg.grid.sf) + 
+  geom_sf(aes(fill = clust), alpha = 0.7) +
+  scale_fill_discrete(type = my.pal) +
+  labs(fill = "cluster", title = "INCOVE clusters")  +
+  theme(legend.position="none")
+p2 <- ggplot() +
+  tidyterra::geom_spatraster(data = sg.ph.class, aes(fill = class)) +
+   theme(legend.position="none") +
+   labs(title = "pH 0-5 cm classes")
+p3 <- ggplot() +
+  tidyterra::geom_spatraster(data = sg.silt.class, aes(fill = class)) +
+   theme(legend.position="none") +
+   labs(title = "Silt 0-5 cm classes")
+gridExtra::grid.arrange(p1, p2, p3, nrow=1)
+```
+
+Careful examination reveals that the cluster in the NW corner corresponds to an intricate pattern of pH and mostly one class of silt concentration.
+
+## Landscape metrics {#sec-lsm}
+
+Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the `landscapemetrics` package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
+
+[^2]: https://r-spatialecology.github.io/landscapemetrics/
+
+The patterns of soil classes or properties are not expected to have the same characteristics as those for land cover or vegetation types. Land cover is largely controlled by humans, and where it is not, vegetation is mostly placed on the landscape by different mechanisms than are soils. There is a link, however: if the soil property is largely controlled by the `o` (organism) or `h` (human) factor, then the patterns on the landscape could be similar to those under it.
+
+There are many metrics, of three levels of detail. We list them here for reference; each has its own help text.
+
+First, the *patch-level metrics*. These describe every patch, i.e., contiguous cells belonging to the same class.
+
+```{r}
+#| label: list_metrics_patch
+landscapemetrics::list_lsm(level="patch") %>% print(n = 12)
+```
+
+Second, the *class-level* metrics. These describe all patches belonging to a specified class. 
+
+```{r}
+#| label: list_metrics_class
+landscapemetrics::list_lsm(level="class") %>% print(n = 12)
+```
+
+Finally, the *landscape-level* metrics. These describe the characteristics of the entire landscape, i.e., the assemblage of classes and patches.
+
+```{r}
+#| label: list_metrics_landscape
+landscapemetrics::list_lsm(level="landscape") %>% print(n = 12)
+```
+
+### Landscape-level metrics
+
+These measures summarize the pattern of the entire map. The following five seem to be most useful for characterizing soil maps.
+
+-   **ai**: The **landscape aggregation index** LAI is an 'Aggregation metric'. This shows how much the classes occur as large units, vs. as scattered patches. It is independent of the number of classes.
+
+It equals the number of like adjacencies divided by the theoretical maximum possible number of like adjacencies for that class summed over each class for the entire landscape. The metric is based on the adjacency matrix. It equals 0 for maximally disaggregated and 100 for maximally aggregated classes. [More info](https://r-spatialecology.github.io/landscapemetrics/reference/lsm_l_ai.html) $$\mathrm{LAI} = \Bigg[∑_{i=1}^m \Big( \frac{g_{ii}}{max-g_{ii}} \Big) P_{i} \Bigg](100)$$ where $g_{ii}$ is the number of like adjacencies, $(\mathrm{max}-g_{ii})$ is the class-wise maximum possible number of like adjacencies of class $i$ (i.e., if all pixels in the class were in one cluster), and $P_{i}$ is the proportion of landscape comprised of class $i$, to weight the index by class prevalence.
+
+-   **frac_mn**: The **mean fractal dimension** FRAC_MN is a 'Shape metric'. It summarises the landscape as the mean of the fractal dimension index of all patches in the landscape, i.e., the complexity of the map.
+
+The fractal dimension index is based on the patch perimeter and the patch area and describes the patch complexity. The Coefficient of variation is scaled to the mean and thus is comparable among different landscapes. [More info](https://r-spatialecology.github.io/landscapemetrics/reference/lsm_l_frac_mn.html) $$\mathrm{FRAC} = \frac{2 * \ln * (0.25 * p_{ij})} {\ln a_{ij}}$$ where the patch perimeters are ${p_{ij}}$ in linear units and the areas are ${a_{ij}}$ in square units.
+
+-   **lsi**: **landscape shape index** LSI is an 'Aggregation metric'. It is the ratio between the actual edge length of class $i$ and the hypothetical minimum edge length of class $i$. It measures how compact are the classes. For example, long thin classes will have low LSI.
+
+The minimum edge length equals the edge length if class i would be maximally aggregated. LSI = 1 when only one square patch is present or all patches are maximally aggregated. Increases, without limit, as the length of the actual edges increases, i.e. the patches become less compact. [More info](https://r-spatialecology.github.io/landscapemetrics/reference/lsm_c_lsi.html?q=lsi) $$   \mathrm{LSI} = \frac{0.25 E'}{\sqrt{A}}$$ where $A$ is the total area of the landscape and $E'$ is the total length of edges, including the boundary.
+
+-   **shdi**: The **Shannon diversity index** SHDI is a 'Diversity metric'. It is a widely used metric in biodiversity and ecology and takes both the number of classes and the abundance of each class into account.
+It is related to the concept of entropy: how  much "information" is in the landscape pattern. More classes and more even distribution of their areas implies high information.
+
+SHDI = 0 when only one patch is present and increases, without limit, as the number of classes increases while the proportions are equally distributed. [More info](https://r-spatialecology.github.io/landscapemetrics/reference/lsm_l_shdi.html?q=shd) $$ D = - \sum_{i=1}^N p_i \ln p_i$$ where $p_i$ is the proportion of pixels of class $i = (1 \ldots N)$,
+
+-   **shei**: The **Shannon evenness index** SHEI is a 'Diversity metric'. It is the ratio between the Shannon's diversity index $D$ (see previous) and and the theoretical maximum Shannon diversity index $\ln N$. It can be understood as a measure of dominance. 
+
+SHEI = 0 when only one patch present; SHEI = 1 when the proportion of classes is equally distributed. [More info](https://r-spatialecology.github.io/landscapemetrics/reference/lsm_l_shei.html?q=shei) $$E = \frac{D}{\ln N}$$
+
+
+
+These methods must be applied to classified maps. Continuous soil property maps must first be classified into ranges before analysis, see (@sec-hist-equal) and (@sec-mean-limit), above. Different choices of class limits and widths will result in different values of these measures.
+
+### Computing landscape-level metrics {#compute-sec-lsm}
+
+The `landscapemetrics` package implements a set of metrics as used in ecology and derived from the FRAGSTATS computer program; the metrics are explained in the previous section. Here we compute them for the two maps we are comparing.
+
+To compute landscape metrics:
+
+- Input is raster map (here, a `terra::SpatRaster`) with integer values, each of which represents a category, i.e., landscape class.
+- The map must be in a projected CRS, with distance units in meters;
+- Results are in  meters, square meters or hectares, depending on the function;
+
+*Task:* Check that the maps have the proper structure for the landscape metrics. 
+
+This is done with the `landscapemetrics::check_landscape` function.
+
+
+```{r}
+#| label: compute.metrics.check
+check_landscape(sg.ph.class)
+check_landscape(sg.silt.class)
+```
+
+*Task:* Show the landscapes of each layer, first with all classes on one map, then with the classes separate:
+
+
+**global**:
+
+```{r}
+#| label:  show.patches.global
+#| fig-width: 8
+show_patches(sg.ph.class, class = "global")
+show_patches(sg.silt.class, class = "global")
+```
+
+**per-class**:
+
+```{r}
+#| label:  show.patches.all
+#| fig-width: 14
+show_patches(sg.ph.class, class = "all", nrow = 3)
+show_patches(sg.silt.class, class = "all", nrow = 3)
+```
+
+
+Q: Describe the main differences between the patterns. Which map seems more aggregated? More diverse?
+
+*Task:* compute the metrics and tabulate them:
+
+```{r}
+lst <- paste0("lsm_l_", c("shdi", "shei", "lsi", "ai",  "frac_mn"))
+ls.metrics.ph <- calculate_lsm(sg.ph.class, what=lst)
+ls.metrics.silt <- calculate_lsm(sg.silt.class, what=lst)
+metrics.table <- data.frame(product=c("pH", "silt"),
+                            rbind(round(ls.metrics.ph$value, 3),
+                                  round(ls.metrics.silt$value, 3)))
+names(metrics.table)[2:6] <- ls.metrics.ph$metric
+metrics.table
+```
+
+
+Q: Referring to the descriptions of these metrics (above), what are the differences between these maps' landscape patterns? Where do the maps most differ?
+
+- Aggregation Index
+- Mean Fractal Dimension
+- Landscape Shape Index
+- Shannon Diversity
+- Shannon Evenness
+
+Question: Which maps in the DSM stack do you expect to have similar landscape metrics?
+
+˙
+# Supercells
+
+*"Superpixels"* is a generic name for grouping pixels with similar characteristics into larger assemblages. In the soil map context, the aim is to regionalize into areas with similar values of one or more raster layers.
+
+The `supercells::supercells` function controls the segmentation: the user can specify the `k` argument for the number of supercells, and the `compactness` argument to control shape: larger values lead to more square, less long/twisted shapes. It is also possible to specify a set of initial supercell centres (with an `sf` POINTS geometry) or a separation between initial centres with the `step` argument.
+
+This function implements the SLIC algorithm [@achantaSLICSuperpixelsCompared2012].
+
+As an example with the pH map, we divide into about 50 supercells, with low compactness since we don't expect near-square natural units. Here is the source map:
+
+```{r}
+#| label: SLIC-source
+#| fig-width: 6
+ggplot() +
+  geom_spatraster(data=sg4.utm[[ix.ph05]]) +
+  scale_fill_viridis_c() +
+  labs(fill = "pH x 10")
+```
+
+And here are the 50 supercells, with very low compactness, i.e., allowing for irregular and elongated shapes:
+
+```{r}
+#| label: supercells-not-compact
+#| fig-width: 6
+sg4.ph.50 = supercells(sg4.utm[[ix.ph05]], k = 50, compactness = 0.1)
+names(sg4.ph.50)
+names(sg4.ph.50)[4] <- "pH_05cm" # `supercells` changes the name -- a bug?
+ggplot(data=sg4.ph.50) +
+  geom_sf(aes(fill = pH_05cm)) +
+  scale_fill_viridis_c() + 
+  labs(fill = "mean pH")
+```
+
+Try to form more compact supercells:
+
+```{r}
+#| label: supercells-compact
+#| fig-width: 6
+sg4.ph.50 = supercells(sg4.utm[[ix.ph05]], k = 50, compactness = 3)
+names(sg4.ph.50)[4] <- "pH_05cm" # `supercells` changes the name -- a bug?
+ggplot(data=sg4.ph.50) +
+  geom_sf(aes(fill = pH_05cm)) +
+  scale_fill_viridis_c() + 
+  labs(fill = "mean pH")
+```
+
+These do not look realistic.
+
+Try with multiple rasters, here pH and silt concentrations:
+
+```{r}
+#| label: supercells-multiple
+#| fig-width: 6
+r <- c(sg4.utm[[ix.ph05]], sg4.utm[[ix.silt05]])
+r.50 = supercells(r, k = 50, compactness = 0.1)
+ggplot(data=r.50) +
+  geom_sf(aes(fill = phh2o_0.5cm_mean)) +
+  labs(fill = "mean pH") +
+  scale_fill_continuous(type = "viridis")
+ggplot(data=r.50) +
+  geom_sf(aes(fill = silt_0.5cm_mean)) +
+  labs(fill = "silt ppt") +
+  scale_fill_continuous(type = "viridis")
+```
+
+The segments are the same in the two visualizations.
+
+*Challenge*: Experiment with different `compactness` and `k` parameters. Which seem to give a more "realistic" landscape pattern?
+
+# References
+
+::: {#refs}
+:::

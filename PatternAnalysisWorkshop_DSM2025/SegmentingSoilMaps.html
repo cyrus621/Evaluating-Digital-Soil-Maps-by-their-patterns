@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="D G Rossiter">
+<meta name="dcterms.date" content="2024-12-29">
+
+<title>Segmenting soil maps</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="SegmentingSoilMaps_files/libs/clipboard/clipboard.min.js"></script>
+<script src="SegmentingSoilMaps_files/libs/quarto-html/quarto.js"></script>
+<script src="SegmentingSoilMaps_files/libs/quarto-html/popper.min.js"></script>
+<script src="SegmentingSoilMaps_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="SegmentingSoilMaps_files/libs/quarto-html/anchor.min.js"></script>
+<link href="SegmentingSoilMaps_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="SegmentingSoilMaps_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="SegmentingSoilMaps_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="SegmentingSoilMaps_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="SegmentingSoilMaps_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<link href="SegmentingSoilMaps_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+<script src="SegmentingSoilMaps_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#abstract" id="toc-abstract" class="nav-link active" data-scroll-target="#abstract"><span class="header-section-number">1</span> Abstract</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">2</span> Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup"><span class="header-section-number">3</span> Setup</a>
+  <ul class="collapse">
+  <li><a href="#packages" id="toc-packages" class="nav-link" data-scroll-target="#packages"><span class="header-section-number">3.1</span> Packages</a></li>
+  <li><a href="#file-paths" id="toc-file-paths" class="nav-link" data-scroll-target="#file-paths"><span class="header-section-number">3.2</span> File paths</a></li>
+  <li><a href="#key-parameters" id="toc-key-parameters" class="nav-link" data-scroll-target="#key-parameters"><span class="header-section-number">3.3</span> Key parameters</a></li>
+  <li><a href="#helper-functions" id="toc-helper-functions" class="nav-link" data-scroll-target="#helper-functions"><span class="header-section-number">3.4</span> Helper functions</a></li>
+  </ul></li>
+  <li><a href="#workflow" id="toc-workflow" class="nav-link" data-scroll-target="#workflow"><span class="header-section-number">4</span> Workflow</a>
+  <ul class="collapse">
+  <li><a href="#grid-signature" id="toc-grid-signature" class="nav-link" data-scroll-target="#grid-signature"><span class="header-section-number">4.1</span> Grid signature</a></li>
+  <li><a href="#segmentation" id="toc-segmentation" class="nav-link" data-scroll-target="#segmentation"><span class="header-section-number">4.2</span> Segmentation</a></li>
+  <li><a href="#evaluation" id="toc-evaluation" class="nav-link" data-scroll-target="#evaluation"><span class="header-section-number">4.3</span> Evaluation</a></li>
+  <li><a href="#computation" id="toc-computation" class="nav-link" data-scroll-target="#computation"><span class="header-section-number">4.4</span> Computation</a></li>
+  </ul></li>
+  <li><a href="#export" id="toc-export" class="nav-link" data-scroll-target="#export"><span class="header-section-number">5</span> Export</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="SegmentingSoilMaps.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li><li><a href="SegmentingSoilMaps.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Segmenting soil maps</h1>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliations</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author"><a href="https://www.css.cornell.edu/faculty/dgr2/pubs/index.html">D G Rossiter</a> <a href="https://orcid.org/0000-0003-4558-1286" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+  </div>
+    <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            ISRIC-World Soil Information
+          </p>
+        <p class="affiliation">
+            Section of Soil &amp; Crop Sciences, Cornell University
+          </p>
+      </div>
+    </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">December 29, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="abstract" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Abstract</h1>
+<p>Digital soil maps (DSM) of soil properties or classes are made at set grid resolutions, whereas soil patterns on the landscape have characteristic scales depending on the soil geomorphology. By segmenting a gridded map at various resolutions we attempt to identify soil patterns at various scales. The main aim is to evaluate DSM products in terms of how well they represent the soil landscape. The GeoPAT suite of programs can segment into (usually grouped) grid cells, minimum of 10x the original grid cell resolution of the source maps.</p>
+<p>This script sets up the methods; separate scripts import the functions from here (exported with <code>purl</code>) and use them in case studies.</p>
+</section>
+<section id="introduction" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Introduction</h1>
+<p>GeoPAT is an implementation of the concepts of Jasiewicz <em>et al.</em> (2018).</p>
+<p>GeoPAT itself is described in Jasiewicz <em>et al.</em> (2015) and its full documentation is by Netzel <em>et al.</em> (2018). Chapter 3 has basic workflows, Chapter 2 the detailed command descriptions.</p>
+<p>Jasiewicz, J., Stepinski, T., &amp; Niesterowicz, J. (2018). Multi-scale segmentation algorithm for pattern-based partitioning of large categorical rasters. COMPUTERS &amp; GEOSCIENCES, 118, 122-130. <a href="https://doi.org/10.1016/j.cageo.2018.06.003" class="uri">https://doi.org/10.1016/j.cageo.2018.06.003</a></p>
+<p>Jasiewicz, J., Netzel, P., &amp; Stepinski, T. (2015). GeoPAT: A toolbox for pattern-based information retrieval from large geospatial databases. Computers &amp; Geosciences, 80, 62-73.<a href="https://doi.org/10.1016/j.cageo.2015.04.002" class="uri">https://doi.org/10.1016/j.cageo.2015.04.002</a></p>
+<p>Netzel, P., Nowosad, J., Jasiewicz, J., Niesterowicz, J., &amp; Stepinski, T. (2018). GeoPAT 2: User’s manual. <a href="https://zenodo.org/records/1291123" class="uri">https://zenodo.org/records/1291123</a></p>
+<p><a href="#fig-workflow">Figure&nbsp;1</a> shows the segmentation workflow.</p>
+<div id="fig-workflow" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="./figs/GeoPAT_Fig3-13.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Figure&nbsp;1: Segmentation workflow (GeoPAT Manual)</figcaption>
+</figure>
+</div>
+<p>The segmentation can be followed by <em>regionalization</em>, i.e., grouping related patterns, in this case soil “combinations”, into map units. Regionalization is by clustering segments output by <code>gpat_segment</code> into distinct pattern types. Outputs of the <code>gpat_distmtx</code> module can be used as a distance matrix in a clustering program, of which there are many in R.</p>
+<p>This document (so far) only produces and evaluates the segmentation.</p>
+</section>
+<section id="setup" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Setup</h1>
+<section id="packages" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="packages"><span class="header-section-number">3.1</span> Packages</h2>
+<p>The only non-base R packages are:</p>
+<ul>
+<li><p><code>terra</code> to handle raster and vector structures</p></li>
+<li><p><code>sf</code> “simple features” for some plots</p></li>
+<li><p><code>ggplot</code> for GGPlot graphics</p></li>
+<li><p><code>RColorBrewer</code> for palettes</p></li>
+<li><p><code>aqp</code> for Shannon entropy</p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(terra)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(sf)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(ggplot2)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(RColorBrewer)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(gstat) <span class="co"># variograms</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(aqp)   <span class="co"># entropy</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="file-paths" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="file-paths"><span class="header-section-number">3.2</span> File paths</h2>
+<p>GeoPAT is a stand-alone program made of several modules, they must be called via R’s <code>system</code> command. Source code is at https://github.com/Nowosad/geopat2. These commands must be compiled for each operating system, and the path will be different.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># geopat_path &lt;- "/Users/rossiter/dl/geoPAT_program/geopat2_MacOS"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>geopat_path <span class="ot">&lt;-</span> <span class="st">"/usr/local/bin"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>gridhis_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(geopat_path, <span class="st">"gpat_gridhis"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>segment_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(geopat_path, <span class="st">"gpat_segment"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>segqual_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(geopat_path, <span class="st">"gpat_segquality"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>grid2txt_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(geopat_path, <span class="st">"gpat_grid2txt"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>distmtx_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(geopat_path, <span class="st">"gpat_distmtx"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A base directory where we keep our GeoPAT input files (grids) and results (segmentation); this path will be expanded for each case study.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>base_path <span class="ot">&lt;-</span> <span class="st">"/Users/rossiter/tmp/GeoPAT"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="key-parameters" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="key-parameters"><span class="header-section-number">3.3</span> Key parameters</h2>
+<p>Several choices influence the grid sizes that will be used to make segments. These should correspond to the map scale: soil associations, soil series, soil phases… related to the landscapes structure.</p>
+<p>The defaults for grid creation in <code>geopat_gridhis</code> are</p>
+<ul>
+<li><code>-z 150</code> <em>motifel size</em>, and</li>
+<li><code>-f 100</code> <em>shift</em>, both in input raster cell units.</li>
+</ul>
+<p>A <em>motifel</em> (“motif element”?) is the elementary unit of analysis: a square block of pixels representing a local pattern. It is quantified by a histogram of features (e.g., co-occurrence, decomposition – see below). Then distance between motifels is calculated as a distance between their histograms by various metrics, e.g., Jensen-Shannon Divergence).</p>
+<p>The <em>motifel size</em> defines the size of individual scene for which the histogram is calculated.</p>
+<p>The <em>shift</em> is the number of grid cells by which scenes shift along the grid in vertical and horizontal directions. The resolution of the output grid equals to the resolution of the input raster map multiplied by the shift. For example shift is <span class="math inline">\(100\)</span> cells and the input raster has <span class="math inline">\(25 \;\textrm{m}\)</span> resolution, the output grid would have <span class="math inline">\(25 \;\textrm{m} \times 100 = 2500 \;\textrm{m}\)</span> resolution.</p>
+<p>Thus the motifel size can be the shift size with some buffer; it could be the same, and it could even be smaller. If shift is set to the same value as motifel size, the input map will be simply divided into a grid of non-overlapping motifels. The idea of a larger motifel than size is to account for border effects.</p>
+<p>A key part of the analysis is adjusting these until patterns emerge, at various scales.</p>
+</section>
+<section id="helper-functions" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="helper-functions"><span class="header-section-number">3.4</span> Helper functions</h2>
+<p>A function to compile Minimum Legible Area (in <span class="math inline">\(\textrm{ha}\)</span>) from the scale. Input is the denominator of the scale ratio, e.g., for 1:50 000 it is 50 000.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>scale.to.mla <span class="ot">&lt;-</span> <span class="cf">function</span>(scale.number) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>((((scale.number<span class="sc">/</span><span class="dv">1000</span>)<span class="sc">^</span><span class="dv">2</span>)<span class="sc">/</span><span class="dv">400</span>))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The square root of this, when converted to <span class="math inline">\(\textrm{m}^2\)</span>), is then the grid side in <span class="math inline">\(\mathrm{m}\)</span>. Example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(mla <span class="ot">&lt;-</span> <span class="fu">scale.to.mla</span>(<span class="dv">50000</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 6.25</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(mla<span class="sc">*</span>(<span class="dv">100</span><span class="sc">^</span><span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 250</code></pre>
+</div>
+</div>
+<p>So to correspond to a 1:50 000 scale map, we look for patterns in a 2.5 x 2.5 <span class="math inline">\(\mathrm{m}^2\)</span> grid cell, which corresponds to a MLA of 6.25 <span class="math inline">\(\mathrm{m}^2\)</span>.</p>
+<p>This function computes the shift, in map units, from the scale number. It is not used in the computation but can be called separately to figure out the desired shift.</p>
+<p>The relative proportion of the motifel vs.&nbsp;shift can be adjusted elsewhere in the workflow.</p>
+<p>Note that the segmentation combines the rectangular tiling into a “brick” topology, see GeoPAT manual Appendix A. These cells are 2 x 2 of the square tiles. So to get the pattern at a given grid size, we need to specify the original grid size at 2x resolution.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>grid.dimensions <span class="ot">&lt;-</span> <span class="cf">function</span>(scale.number) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  shift <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">scale.to.mla</span>(scale.number)<span class="sc">*</span>(<span class="dv">100</span><span class="sc">^</span><span class="dv">2</span>))<span class="sc">/</span><span class="dv">2</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># /2 to account for aggregation in the segmentation phase</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(shift)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Nominal scale from shift in meters:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>effective.scale <span class="ot">&lt;-</span> <span class="cf">function</span>(shift.m) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(shift.m<span class="sc">*</span><span class="dv">400</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The MLA used by the program will be 1/4 the size of the MLA for the given scale, this to allow the “brick” topology.</p>
+</section>
+</section>
+<section id="workflow" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Workflow</h1>
+<p>Here are functions for the workflow, adjustable with parameters.</p>
+<p>The input map(s) must have been prepared as classified GeoTIFF.</p>
+<section id="grid-signature" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="grid-signature"><span class="header-section-number">4.1</span> Grid signature</h2>
+<p>Build a pattern signature for maps using <code>gridhis</code>. A separate signature must be created for each layer, with that layer’s statistics in the grid.</p>
+<p>“This module extracts a grid-of-scenes (grid of pattern signatures, grid of motifels). The output is a grid of the same spatial extent as the input raster map, but with a different cell size. Each cell in a new grid has only one attribute - the signature of its pattern. Pattern is calculated over a window centered on the cell and having a user-defined size.”</p>
+<p>Arguments:</p>
+<p>0.<code>case_path</code>, where the files to process are found and results stored, as subdirectories <code>ds</code> and <code>results</code></p>
+<ol type="1">
+<li><p>layer name of the property; file names are built from this – <code>source_TIFF</code> was the output of the data preparation for this layer It must be a classified raster – <code>input_GRID</code> will be the input to the segmentation</p></li>
+<li><p><code>shift.side</code> = shift size, in map units (e.g., meters)</p></li>
+<li><p><code>motifel.mult</code> = motifel size, as a proportion of shift.side, default <span class="math inline">\(1.5\)</span> – this matches the ratio recommended in the manual (shift 100, motifel 150). From the manual: “Shift defines the resolution of the new grid. If window size is bigger than shift (recommended), motifels will overlap”. So we set the default motifel to be 50% larger than the shift. It is the motifel that determines the size of the pattern.</p></li>
+<li><p><code>s</code> = signature type, default <code>cooc</code> “Spatial co-ocurrence of categories”. See GeoPAT Manual Appendix B for options.</p></li>
+<li><p><code>n</code> = normalization type, default <code>pdf</code> (probability distribution function) which is recommended for <code>cooc</code>. See GeoPAT Manual Appendix C for options.</p></li>
+</ol>
+<p>Outputs:</p>
+<ol type="1">
+<li><p>the signature grid as a GeoTIFF, input to the segmentation step</p></li>
+<li><p>the signature grid as a text file (this is not yet used for more processing)</p></li>
+</ol>
+<p>Returns:</p>
+<ol type="1">
+<li>vector with shift and motifel size, in grid units. This is used to keep outputs from different runs separate</li>
+</ol>
+<p>The function computes the shift and motifel size from the resolution and a multiplier for the motifel side. But these can not be <span class="math inline">\(&lt; 10\)</span> grid cells.</p>
+<p>Some details on the methods:</p>
+<p>From the <code>-l</code> option to <code>gpat_gridhis</code>:</p>
+<p>List of signatures:</p>
+<p><code>prod</code> Cartesian product of input category lists <code>cooc</code> Spatial coocurrence of categories <code>fdec</code> Full decomposition <code>lind</code> Landscape indices vector <code>linds</code> Selected landscape indices vector <code>ent</code> Shannon entropy</p>
+<p>List of local normalization methods:</p>
+<p><code>01</code> Normalize to the interval [0, 1] <code>pdf</code> Normalize to pdf (sum(hi) = 1) <code>N01</code> Normalize to N(0, 1) (hi=(hi-avg)/std) <code>none</code> Signature without any normalization</p>
+<p><em>Spatial co-ocurrence of categories</em>: <code>s = cooc</code> uses a color co-occurrence histogram, a variant of the Gray-Level Co- occurrence Matrix (GLCM) used to characterize texture in grayscale images. In GeoPAT, color is replaced by cell class and a single cell separation of one pixel is used to calculate a co-occurrence histogram.</p>
+<p>“The co-occurrence signature is designed to be effective in encapsulating spatial structures exhibiting high complexity patterns.”</p>
+<p>Reference: Haralick, R. M., Shanmugam, K., &amp; Dinstein, I. (1973). Textural features for image classification. IEEE Transactions on Systems, Man, and Cybernetics, SMC-3(6), 610-621. <a href="https://doi.org/10.1109/TSMC.1973.4309314" class="uri">https://doi.org/10.1109/TSMC.1973.4309314</a>. A popular explanation is Hall-Beyer, M. (2017). GLCM Texture: A Tutorial v. 3.0 March 2017. <a href="http://hdl.handle.net/1880/51900" class="uri">http://hdl.handle.net/1880/51900</a></p>
+<p>Alternatives are (1) to use a selected landscape index (FRAGSTATS-style); (2) a hierarchical decomposition.</p>
+<p><em>Probability Distribution Function</em> <code>n = pdf</code> normalization, i.e., fit the empirical distribution with the sample mean (to 0) and standard deviation (to 1), so all layers have the same weight.</p>
+<p>Alternative is (1) stretch minimum and maximum to <span class="math inline">\([0 ... 1]\)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># system(gridhis_path)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>make.signature <span class="ot">&lt;-</span> <span class="cf">function</span>(case_path, layer.name, </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                           shift.side, <span class="at">motifel.mult =</span> <span class="fl">1.5</span>, </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                           <span class="at">s =</span> <span class="st">"'cooc'"</span>, <span class="at">n =</span> <span class="st">"'pdf'"</span>) {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># paths for this case</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  ds_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"ds"</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  results_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"results"</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># source files</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="do">## classified -- for segmentation</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  source_TIFF <span class="ot">&lt;-</span> <span class="fu">file.path</span>(ds_path, <span class="fu">paste0</span>(layer.name, <span class="st">".tif"</span>))</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># minimun shift is 10</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  r.c <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(ds_path, <span class="fu">paste0</span>(layer.name, <span class="st">".tif"</span>)))</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  res <span class="ot">&lt;-</span> <span class="fu">res</span>(r.c)[<span class="dv">1</span>]</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  f <span class="ot">&lt;-</span> <span class="fu">max</span>(shift.side, <span class="dv">10</span>)  <span class="co"># must have at least 10 cells per side</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">round</span>(shift.side<span class="sc">*</span>motifel.mult)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># what resolution could be achieved</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Shift size (grid units):"</span>, f, <span class="st">"; (map units):"</span>, f<span class="sc">*</span>res))</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste0</span>(<span class="st">"Effective scale 1:"</span>, <span class="fu">sprintf</span>(<span class="st">"%d"</span>, <span class="fu">effective.scale</span>(f<span class="sc">*</span>res))))</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Motifel size (grid units):"</span>, z, <span class="st">"; (map units):"</span>, z<span class="sc">*</span>res))</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste("Grid cell area:", sprintf("%d", (f*res)^2)))</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste("Motifel size (grid units):", z, "; (map units):", z*res))</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  input_GRID <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, <span class="fu">paste0</span>(layer.name, <span class="st">"_"</span>, f, <span class="st">"_"</span>, z, <span class="st">".tif"</span>))</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>  input_TXT <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, <span class="fu">paste0</span>(layer.name, <span class="st">"_"</span>, f, <span class="st">"_"</span>, z, <span class="st">".txt"</span>))</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a><span class="co">#  if (!file.exists(input_GRID)) {</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">system</span>(<span class="fu">paste0</span>(gridhis_path, </span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -i "</span>, source_TIFF,</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -o "</span>, input_GRID,</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -z "</span>, z,  <span class="co"># motifel size</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -f "</span>, f,  <span class="co"># shift size</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -s "</span>, s,</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>                  <span class="st">" -n "</span>, n))</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="co">#    system(paste0(grid2txt_path,</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="co">#                  " -i ", input_GRID,</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="co">#                  " -o ", input_TXT))</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="co">#  }</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(f, z))</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="segmentation" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="segmentation"><span class="header-section-number">4.2</span> Segmentation</h2>
+<p>The grids with signatures are inputs to the segmentation algorithm.</p>
+<p>“This module segments a grid-of-scenes into regions of uniform patterns in the same fash- ion as traditional segmentation algorithms segment image (or other rasters) into segments of uniform color and texture. The difference is that <code>gpat_segment</code> segments a <em>grid-of-scenes</em> rather than an ordinary grid, and uses <em>scene signature as attribute</em> rather than color or image texture to decide how to delineate the segments.”</p>
+<p>See GeoPAT manual <span class="math inline">\(\S2.2.2.3\)</span> for details, and Appendix D for options.</p>
+<p>Accept the default “average” linkage, can specify “complete” linkage (<code>-c</code> argument).</p>
+<p>Propose the default minimum distance thresholds to build areas from grids: <code>-lthreshold=0.1</code> (to control the sizes of segments) and <code>-uthreshold=0.3</code> (to prevent the growth of inhomogeneous segments). In multilayer segmentation “a motifel must meet the threshold conditions in all input layers to be joined to a segment. This is a rigorous solution and assure the full compatibility of all layers in the output segmentation.”</p>
+<p>These thresholds <code>{l,u}threshold</code> are the minimum and maximum distance thresholds to build areas. To get larger segments, reduce the minimum and increase the maximum.</p>
+<p>So this is quite strict: each layer’s motifel in a grid cell must be similar enough to a neighbour’s in order for them to merge. The <code>-uthreshold</code> can be relaxed for multi-layers, if the defaults give too fine a segmentation.</p>
+<p>An alternative is to weight the layers (<code>-w=</code> argument, with a list of weights parallel to the list of layers). “The weighted geometric mean of all layers in the motifel must be below the threshold to be joined to a segment. Weights allow to control the role of individual layers. Layer with a large weight value will have more impact on the resulting segmentation.”</p>
+<p>Another parameter is <code>-swap=0.001</code> by default. “There is a chance that some motifels located at segments’ boundaries show more affinity to motifels across the boundary than to motifels in its own segment. The swap parameter is used to alleviate this problem. It adjusts the boundaries between the segments.”</p>
+<p>“For each border motifel its linkage to the parent segment, <span class="math inline">\(D_\mathrm{par}\)</span>, as well as its linkage to the segment across the boundary, <span class="math inline">\(D_\mathrm{neigh}\)</span> is calculated. If the difference between <span class="math inline">\(D_\mathrm{par}\)</span> and <span class="math inline">\(D_\mathrm{neigh}\)</span> is positive (the linkage to the segment across the boundary is smaller than the linkage to parent segment) the motifel is marked for possible reassignment (resulting in an adjustment to the boundary). The boundary between segments is adjusted only when the swap value is larger than the difference between <span class="math inline">\(D_\mathrm{par}\)</span> and <span class="math inline">\(D_\mathrm{neigh}\)</span>.”</p>
+<p>Function to do the segmentation, using GeoPAT command <code>gpat_segment</code>. Arguments:</p>
+<p>0.<code>case_path</code>, where the files to process are found and results stored, in subdirectory <code>results</code></p>
+<ol type="1">
+<li><p>Vector of layers (as names) to include in the segmentation calculation</p></li>
+<li><p><code>f.z</code> 2-element vector with shift and motifel, to label outputs</p></li>
+<li><p>Similarity measure, default <code>jsd</code> (Jensen-Shannon Distance)</p></li>
+</ol>
+<p>4, 5. Segmentation thresholds <code>{l,u}threshold</code>, defaults 0.1, 0.3</p>
+<ol start="6" type="1">
+<li>Vector of per-layer weights, default <code>NA</code>.</li>
+</ol>
+<p>The segmentation output as grid and polygons are named by the layer list.</p>
+<p>Input file is a GRID (signature); outputs are a raster TIFF with segments and a vector file GPKG also with segments.</p>
+<p>The function returns the constructed names of the segments files.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># system(segment_path)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>segment.it <span class="ot">&lt;-</span> <span class="cf">function</span>(case_path, layers, f.z, </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">m =</span> <span class="st">"jsd"</span>, </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">lthreshold =</span> <span class="fl">0.1</span>, <span class="at">uthreshold =</span> <span class="fl">0.3</span>, </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">w =</span> <span class="cn">NA</span>) {</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  results_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"results"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  segmented.name <span class="ot">&lt;-</span> <span class="fu">paste</span>(layers, <span class="at">collapse=</span><span class="st">"-"</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">nchar</span>(segmented.name) <span class="sc">&gt;</span> <span class="dv">64</span>) segmented.name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Layers"</span>, <span class="fu">length</span>(layers))</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  segment_TIFF <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">paste0</span>(segmented.name, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>], <span class="st">"_seg.tif"</span>)) <span class="co"># segmented grid</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  segment_GPKG <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, </span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">paste0</span>(segmented.name, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>], <span class="st">"_seg.gpkg"</span>)) <span class="co"># polygons</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  input.names <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">" -i "</span>, <span class="fu">file.path</span>(results_path,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>                                          <span class="fu">paste0</span>(layers, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>], <span class="st">".tif"</span>))) <span class="co">#  input grid</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># make one (long) string of the inputs</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  input.names <span class="ot">&lt;-</span> <span class="fu">paste</span>(input.names, <span class="at">collapse =</span> <span class="st">"  "</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">system</span>(<span class="fu">paste0</span>(segment_path, input.names,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -o "</span>, segment_TIFF,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -v "</span>, segment_GPKG,</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -m "</span>, m,</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span>(<span class="sc">!</span><span class="fu">is.na</span>(w[<span class="dv">1</span>])) { <span class="fu">paste0</span>(<span class="st">" -w="</span>,w) },</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="co">#                " -c",          # complete linkage</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>               <span class="fu">paste0</span>(<span class="st">" --lthreshold="</span>, lthreshold),</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>               <span class="fu">paste0</span>(<span class="st">" --uthreshold="</span>, uthreshold),</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>               <span class="st">" --swap=0.001"</span>) <span class="co"># low value to encourage swapping</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="co">#                " --maxhist=0"  # turn off leveraging, increased computation</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  <span class="co"># report the number of segments</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># tmp &lt;- vect(segment_GPKG)</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  <span class="co"># print(paste("Number of segments:", nrow(tmp)))</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(segment_TIFF, segment_GPKG))</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="evaluation" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="evaluation"><span class="header-section-number">4.3</span> Evaluation</h2>
+<p>The quality of the segmentation can be computed for each input layer, i.e., how well was that layer segmented, whether it was segmented as one layer or as part of a multi-layer segmentation.</p>
+<p>Arguments:</p>
+<ol start="0" type="1">
+<li><p><code>case_path</code>, where the files to evaluate are found, in subdirectory <code>results</code></p></li>
+<li><p>layers for which to evaluate the segmentation</p></li>
+<li><p><code>segment_m_TIFF</code> The segmentation results <code>.tif</code> from the previous step</p></li>
+<li><p><code>f.z</code> 2-element vector with shift and motifel, to label outputs</p></li>
+<li><p>Similarity measure, default <code>jsd</code> (Jensen-Shannon Divergence)</p></li>
+</ol>
+<p>It produces two output maps, one for the internal inhomogeneity of a grid, and one for its isolation from its neighbours. Their names are returned</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># system(segqual_path)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>evaluate.it <span class="ot">&lt;-</span> <span class="cf">function</span>(case_path, layers, segment_m_TIFF, f.z, <span class="at">m =</span> <span class="st">"jsd"</span>) {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  results_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"results"</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  segmented.name <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">paste0</span>(layers, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>]), <span class="at">collapse=</span><span class="st">"-"</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">nchar</span>(segmented.name) <span class="sc">&gt;</span> <span class="dv">64</span>) segmented.name <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Layers"</span>, <span class="fu">length</span>(layers), <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>])</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  inhomogeneity_m_TIFF <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, <span class="fu">paste0</span>(segmented.name,  <span class="st">"_inhomo.tif"</span>)) </span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  isolation_m_TIFF <span class="ot">&lt;-</span> <span class="fu">file.path</span>(results_path, <span class="fu">paste0</span>(segmented.name, <span class="st">"_iso.tif"</span>)) </span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  input.names <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">" -i "</span>, <span class="fu">file.path</span>(results_path, <span class="fu">paste0</span>(layers, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>] , <span class="st">".tif"</span>)))</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">system</span>(<span class="fu">paste0</span>(segqual_path, input.names,</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -s "</span>, segment_m_TIFF,</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -g "</span>, inhomogeneity_m_TIFF,</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -o "</span>, isolation_m_TIFF,</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>                <span class="st">" -m"</span>, m))</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">c</span>(inhomogeneity_m_TIFF, isolation_m_TIFF))</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="computation" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="computation"><span class="header-section-number">4.4</span> Computation</h2>
+<p>A function to compute and display all the steps.</p>
+<p>Arguments:</p>
+<ol type="1">
+<li><p><code>shift.side</code> number of cells on a side of the grid</p></li>
+<li><p><code>case_path</code> base directory where the source DSM raster layers are stored in subdirectory <code>ds</code> and where the results will be stored in subdirectory <code>results</code>.</p></li>
+<li><p><code>layers</code> list of layers in that directory</p></li>
+<li><p><code>motifel.mult</code> size of motifel grid side, as a proportion of the shift size; default <span class="math inline">\(1.5\)</span></p></li>
+<li><p><code>s</code> signature type, default <code>cooc</code>, see <code>make.signature()</code></p></li>
+<li><p><code>n</code> normalization type, default <code>pdf</code>, see <code>make.signature()</code></p></li>
+<li><p><code>m</code> similarity metric, default <code>jsd</code> = Jensen-Shannon distane</p></li>
+<li><p><code>thresholds</code> two-element vector with the lower and upper segmentation thresholds, default <code>c(0.1, 0.3)</code></p></li>
+<li><p>Per-layer weights, default <code>NA</code>.</p></li>
+<li><p><code>plot.seg.numbers</code> whether or not to plot segment #s on maps, default <code>FALSE</code>; this can be useful for understanding why segments are built as they are.</p></li>
+<li><p><code>palette</code> to use when plotting maps with segment boundaries overlaid. Default <code>""</code> will give the terra default terra::map.pal(“viridis”)</p></li>
+<li><p><code>variogram.analysis</code> to compute fitted variogram parameters for each segment, summarize them, and plot. Default <code>FALSE</code> because this is <em>very</em> time-consuming. Probably should only be turned on when there are 50 or fewer segments.</p></li>
+</ol>
+<p>Returns:</p>
+<ol type="1">
+<li>Number of segments</li>
+</ol>
+<p>Side effects: summarizes and maps evaluation statistics</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>compute.it <span class="ot">&lt;-</span> <span class="cf">function</span>(shift.side, case_path, layers, </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">motifel.mult =</span> <span class="fl">1.5</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">s =</span> <span class="st">'cooc'</span>,  <span class="co"># same default as make.signature</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">n =</span> <span class="st">'pdf'</span>,  <span class="co"># same default as make.signature</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">m =</span> <span class="st">"jsd"</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="fl">0.1</span>, <span class="fl">0.3</span>),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">w =</span> <span class="cn">NA</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>                       <span class="at">plot.seg.numbers =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>                       <span class="at">palette =</span> <span class="st">""</span>,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>                       <span class="at">variogram.analysis =</span> <span class="cn">FALSE</span>) {</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Shift side:"</span>, shift.side))</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># signatures</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (l <span class="cf">in</span> layers) {</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># will convert these sizes in meters to size in grid cells</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    f.z <span class="ot">&lt;-</span> <span class="fu">make.signature</span>(case_path, l, shift.side, motifel.mult, s, n)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># segmentation</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  segment.results <span class="ot">&lt;-</span> <span class="fu">segment.it</span>(case_path, </span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>                                layers, f.z, m, w,</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>                                <span class="at">lthreshold =</span> thresholds[<span class="dv">1</span>],</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>                                <span class="at">uthreshold =</span> thresholds[<span class="dv">2</span>])</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot segmentation results over all input layers</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>  ds_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"ds"</span>)</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>  v.seg <span class="ot">&lt;-</span> <span class="fu">vect</span>(segment.results[<span class="dv">2</span>])</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of segments:"</span>, <span class="fu">dim</span>(v.seg)[<span class="dv">1</span>]))</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (l <span class="cf">in</span> layers) {</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    r.c <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(ds_path, <span class="fu">paste0</span>(l, <span class="st">".tif"</span>)))</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    lvls <span class="ot">&lt;-</span> (<span class="fu">length</span>(<span class="fu">unique</span>(<span class="fu">values</span>(r.c[[<span class="dv">1</span>]]))))</span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (palette <span class="sc">==</span> <span class="st">""</span>) { col.ramp <span class="ot">&lt;-</span> <span class="fu">map.pal</span>(<span class="st">"viridis"</span>, <span class="at">n=</span>lvls)</span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> { col.ramp <span class="ot">&lt;-</span> <span class="fu">colorRampPalette</span>(<span class="fu">brewer.pal</span>(</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">n =</span> <span class="dv">9</span>, <span class="at">name =</span> palette))(lvls) </span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>    } </span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    terra<span class="sc">::</span><span class="fu">plot</span>(r.c, <span class="at">main =</span> <span class="fu">paste0</span>(l, <span class="st">"; Shift: "</span>, shift.side<span class="sc">*</span><span class="fu">res</span>(r.c)[<span class="dv">1</span>], <span class="st">" m"</span>), <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>    terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (plot.seg.numbers) terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="st">"segment_id"</span>, </span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>    <span class="do">### compute and display segmentation metrics</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>    <span class="do">## 1- from continuous map, from which classes were made</span></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>    source_TIFF_p <span class="ot">&lt;-</span> <span class="fu">file.path</span>(ds_path, <span class="fu">paste0</span>(l, <span class="st">"_p.tif"</span>))</span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>    r.p <span class="ot">&lt;-</span> <span class="fu">rast</span>(source_TIFF_p)</span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># use a generic name for the property, for `variogram()` etc. </span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">names</span>(r.p) <span class="ot">&lt;-</span> <span class="st">"z"</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1a - segment standard deviations</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a>    seg.sd <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">extract</span>(r.p, v.seg, <span class="at">fun =</span> sd, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)[<span class="dv">2</span>])</span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="st">"Segment standard deviations:"</span>)</span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">quantile</span>(seg.sd, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (plot.seg.numbers)  {</span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(r.p, <span class="at">main =</span> <span class="st">"Segment standard deviation"</span>, </span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>                  <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="fu">round</span>(seg.sd, <span class="dv">2</span>), </span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>                  <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a>    }  </span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (variogram.analysis) {</span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>      <span class="co"># 1b - segment variogram parameters</span></span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Convert segment vector file to sf, this splits into separate polygons</span></span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a>      (v.sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(v.seg))</span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a>      <span class="co"># structure to save variogram parameters</span></span>
+<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a>      vgm.params <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">id =</span> <span class="dv">0</span>, <span class="at">psill=</span><span class="dv">0</span>, <span class="at">range=</span><span class="dv">0</span>, <span class="at">nugget=</span><span class="dv">0</span>)</span>
+<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a>      <span class="fu">system.time</span>(</span>
+<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a>        <span class="co"># each segment, in the same order as in the SpatVector</span></span>
+<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (s <span class="cf">in</span> v.sf<span class="sc">$</span>segment_id) {</span>
+<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a>          <span class="co"># extract one polygon</span></span>
+<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a>          v <span class="ot">&lt;-</span> v.sf[s,]</span>
+<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a>          <span class="co"># convert it back to SpatVect</span></span>
+<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a>          v.v <span class="ot">&lt;-</span> <span class="fu">vect</span>(v)</span>
+<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a>          <span class="co"># get the values in that segment</span></span>
+<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a>          r.e <span class="ot">&lt;-</span> <span class="fu">crop</span>(r.p, v.v) <span class="co"># reduce bounding box</span></span>
+<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a>          r.e <span class="ot">&lt;-</span> <span class="fu">mask</span>(r.e, v.v)    <span class="co"># just the cells in the segment</span></span>
+<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a>          <span class="co"># plot(r.e)</span></span>
+<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a>          <span class="co"># convert back to sf (via sp) to compute the variogram</span></span>
+<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a>          r.e.spdf <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(r.e, <span class="at">xy =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a>          sp<span class="sc">::</span><span class="fu">coordinates</span>(r.e.spdf) <span class="ot">&lt;-</span> <span class="er">~</span>x <span class="sc">+</span> y</span>
+<span id="cb14-83"><a href="#cb14-83" aria-hidden="true" tabindex="-1"></a>          sp<span class="sc">::</span><span class="fu">proj4string</span>(r.e.spdf) <span class="ot">&lt;-</span> <span class="fu">crs</span>(r.e)</span>
+<span id="cb14-84"><a href="#cb14-84" aria-hidden="true" tabindex="-1"></a>          r.e.sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(r.e.spdf)</span>
+<span id="cb14-85"><a href="#cb14-85" aria-hidden="true" tabindex="-1"></a>          <span class="co"># variogram, using the general target variable name</span></span>
+<span id="cb14-86"><a href="#cb14-86" aria-hidden="true" tabindex="-1"></a>          vg <span class="ot">&lt;-</span> <span class="fu">variogram</span>(z <span class="sc">~</span> <span class="dv">1</span>, r.e.sf)</span>
+<span id="cb14-87"><a href="#cb14-87" aria-hidden="true" tabindex="-1"></a>          <span class="co"># plot(vg)</span></span>
+<span id="cb14-88"><a href="#cb14-88" aria-hidden="true" tabindex="-1"></a>          <span class="co">#</span></span>
+<span id="cb14-89"><a href="#cb14-89" aria-hidden="true" tabindex="-1"></a>          <span class="co"># initial estimates for the model -- use default NA:</span></span>
+<span id="cb14-90"><a href="#cb14-90" aria-hidden="true" tabindex="-1"></a>          <span class="co"># "If any of the initial parameters of model are NA, </span></span>
+<span id="cb14-91"><a href="#cb14-91" aria-hidden="true" tabindex="-1"></a>          <span class="co">#   they are given default values as follows. </span></span>
+<span id="cb14-92"><a href="#cb14-92" aria-hidden="true" tabindex="-1"></a>          <span class="co">#   The range parameter is given one third of the maximum value of object$dist. </span></span>
+<span id="cb14-93"><a href="#cb14-93" aria-hidden="true" tabindex="-1"></a>          <span class="co">#   The nugget value is given the mean value of the first three values of object$gamma. </span></span>
+<span id="cb14-94"><a href="#cb14-94" aria-hidden="true" tabindex="-1"></a>          <span class="co">#  The partial sill is given the mean of the last five values of object$gamma"</span></span>
+<span id="cb14-95"><a href="#cb14-95" aria-hidden="true" tabindex="-1"></a>          vgm <span class="ot">&lt;-</span> <span class="fu">vgm</span>(<span class="st">"Exp"</span>)</span>
+<span id="cb14-96"><a href="#cb14-96" aria-hidden="true" tabindex="-1"></a>          <span class="co"># fit it</span></span>
+<span id="cb14-97"><a href="#cb14-97" aria-hidden="true" tabindex="-1"></a>          vgmf <span class="ot">&lt;-</span> <span class="fu">fit.variogram</span>(vg, vgm)</span>
+<span id="cb14-98"><a href="#cb14-98" aria-hidden="true" tabindex="-1"></a>          <span class="co"># save the parameters</span></span>
+<span id="cb14-99"><a href="#cb14-99" aria-hidden="true" tabindex="-1"></a>          <span class="co"># if range is too long, the fit did not converge</span></span>
+<span id="cb14-100"><a href="#cb14-100" aria-hidden="true" tabindex="-1"></a>          p1 <span class="ot">&lt;-</span> <span class="fu">st_point</span>(<span class="fu">st_bbox</span>(r.e.sf)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span>
+<span id="cb14-101"><a href="#cb14-101" aria-hidden="true" tabindex="-1"></a>          p2 <span class="ot">&lt;-</span> <span class="fu">st_point</span>(<span class="fu">st_bbox</span>(r.e.sf)[<span class="dv">3</span><span class="sc">:</span><span class="dv">4</span>])</span>
+<span id="cb14-102"><a href="#cb14-102" aria-hidden="true" tabindex="-1"></a>          (diag.r.e <span class="ot">&lt;-</span> <span class="fu">st_distance</span>(p1, p2))</span>
+<span id="cb14-103"><a href="#cb14-103" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span> (vgmf<span class="sc">$</span>range[<span class="dv">2</span>] <span class="sc">&gt;</span>  diag.r.e) {</span>
+<span id="cb14-104"><a href="#cb14-104" aria-hidden="true" tabindex="-1"></a>            df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">id =</span> s, <span class="at">psill =</span> <span class="cn">NA</span>, <span class="at">range =</span> <span class="cn">NA</span>, <span class="at">nugget =</span> <span class="cn">NA</span>)</span>
+<span id="cb14-105"><a href="#cb14-105" aria-hidden="true" tabindex="-1"></a>          } <span class="cf">else</span> {</span>
+<span id="cb14-106"><a href="#cb14-106" aria-hidden="true" tabindex="-1"></a>            df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">id =</span> s, <span class="at">psill =</span> vgmf<span class="sc">$</span>psill[<span class="dv">2</span>], <span class="at">range =</span> vgmf<span class="sc">$</span>range[<span class="dv">2</span>], <span class="at">nugget =</span> vgmf<span class="sc">$</span>psill[<span class="dv">1</span>])</span>
+<span id="cb14-107"><a href="#cb14-107" aria-hidden="true" tabindex="-1"></a>          }</span>
+<span id="cb14-108"><a href="#cb14-108" aria-hidden="true" tabindex="-1"></a>          vgm.params <span class="ot">&lt;-</span> <span class="fu">rbind</span>(vgm.params, df)</span>
+<span id="cb14-109"><a href="#cb14-109" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb14-110"><a href="#cb14-110" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb14-111"><a href="#cb14-111" aria-hidden="true" tabindex="-1"></a>      <span class="co"># remove dummy first row from the parameter dataframe</span></span>
+<span id="cb14-112"><a href="#cb14-112" aria-hidden="true" tabindex="-1"></a>      vgm.params <span class="ot">&lt;-</span> vgm.params[<span class="sc">-</span><span class="dv">1</span>, ]</span>
+<span id="cb14-113"><a href="#cb14-113" aria-hidden="true" tabindex="-1"></a>      <span class="co"># these should be parallel</span></span>
+<span id="cb14-114"><a href="#cb14-114" aria-hidden="true" tabindex="-1"></a>      <span class="co"># sum(vgm.params$id - v.seg$segment_id)</span></span>
+<span id="cb14-115"><a href="#cb14-115" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="st">"Partial sills:"</span>)</span>
+<span id="cb14-116"><a href="#cb14-116" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="fu">summary</span>(vgm.params<span class="sc">$</span>psill))</span>
+<span id="cb14-117"><a href="#cb14-117" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="st">"Nuggets:"</span>)</span>
+<span id="cb14-118"><a href="#cb14-118" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="fu">summary</span>(vgm.params<span class="sc">$</span>nugget))</span>
+<span id="cb14-119"><a href="#cb14-119" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="st">"Proportional nuggets:"</span>)</span>
+<span id="cb14-120"><a href="#cb14-120" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="fu">summary</span>(vgm.params<span class="sc">$</span>nugget<span class="sc">/</span>(vgm.params<span class="sc">$</span>psill <span class="sc">+</span> vgm.params<span class="sc">$</span>nugget)))</span>
+<span id="cb14-121"><a href="#cb14-121" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="st">"Ranges:"</span>)</span>
+<span id="cb14-122"><a href="#cb14-122" aria-hidden="true" tabindex="-1"></a>      <span class="co"># adjust to km, assuming the original is in metres</span></span>
+<span id="cb14-123"><a href="#cb14-123" aria-hidden="true" tabindex="-1"></a>      vgm.params<span class="sc">$</span>range <span class="ot">&lt;-</span> vgm.params<span class="sc">$</span>range<span class="sc">/</span><span class="dv">1000</span></span>
+<span id="cb14-124"><a href="#cb14-124" aria-hidden="true" tabindex="-1"></a>      <span class="fu">print</span>(<span class="fu">summary</span>(vgm.params<span class="sc">$</span>range))</span>
+<span id="cb14-125"><a href="#cb14-125" aria-hidden="true" tabindex="-1"></a>      <span class="co"># total sill is similar to variance, we have that directly</span></span>
+<span id="cb14-126"><a href="#cb14-126" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb14-127"><a href="#cb14-127" aria-hidden="true" tabindex="-1"></a>      <span class="co"># show variogram parameters on map</span></span>
+<span id="cb14-128"><a href="#cb14-128" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(r.p, <span class="at">main =</span> <span class="st">"Variogram range (km)"</span>, <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-129"><a href="#cb14-129" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-130"><a href="#cb14-130" aria-hidden="true" tabindex="-1"></a>      <span class="co"># terra::text(v.seg, labels = "segment_id", </span></span>
+<span id="cb14-131"><a href="#cb14-131" aria-hidden="true" tabindex="-1"></a>      <span class="co">#            inside = TRUE, cex = 0.8, col="blue", halo = TRUE)</span></span>
+<span id="cb14-132"><a href="#cb14-132" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="fu">round</span>(vgm.params<span class="sc">$</span>range,<span class="dv">1</span>), </span>
+<span id="cb14-133"><a href="#cb14-133" aria-hidden="true" tabindex="-1"></a>                  <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-134"><a href="#cb14-134" aria-hidden="true" tabindex="-1"></a>      <span class="co">#</span></span>
+<span id="cb14-135"><a href="#cb14-135" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(r.p, <span class="at">main =</span> <span class="st">"Variogram total sill"</span>, <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-136"><a href="#cb14-136" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-137"><a href="#cb14-137" aria-hidden="true" tabindex="-1"></a>      <span class="co"># terra::text(v.seg, labels = "segment_id", </span></span>
+<span id="cb14-138"><a href="#cb14-138" aria-hidden="true" tabindex="-1"></a>      <span class="co">#            inside = TRUE, cex = 0.8, col="blue", halo = TRUE)</span></span>
+<span id="cb14-139"><a href="#cb14-139" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="fu">round</span>(vgm.params<span class="sc">$</span>psill <span class="sc">+</span> vgm.params<span class="sc">$</span>nugget,<span class="dv">1</span>), </span>
+<span id="cb14-140"><a href="#cb14-140" aria-hidden="true" tabindex="-1"></a>                  <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-141"><a href="#cb14-141" aria-hidden="true" tabindex="-1"></a>      <span class="co">#</span></span>
+<span id="cb14-142"><a href="#cb14-142" aria-hidden="true" tabindex="-1"></a>      <span class="co">#</span></span>
+<span id="cb14-143"><a href="#cb14-143" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(r.p, <span class="at">main =</span> <span class="st">"Variogram proportional nugget [0..1]"</span>, <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-144"><a href="#cb14-144" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-145"><a href="#cb14-145" aria-hidden="true" tabindex="-1"></a>      <span class="co"># terra::text(v.seg, labels = "segment_id", </span></span>
+<span id="cb14-146"><a href="#cb14-146" aria-hidden="true" tabindex="-1"></a>      <span class="co">#            inside = TRUE, cex = 0.8, col="blue", halo = TRUE)</span></span>
+<span id="cb14-147"><a href="#cb14-147" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="fu">round</span>(vgm.params<span class="sc">$</span>nugget<span class="sc">/</span>(vgm.params<span class="sc">$</span>psill <span class="sc">+</span> vgm.params<span class="sc">$</span>nugget),<span class="dv">2</span>), </span>
+<span id="cb14-148"><a href="#cb14-148" aria-hidden="true" tabindex="-1"></a>                  <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-149"><a href="#cb14-149" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb14-150"><a href="#cb14-150" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-151"><a href="#cb14-151" aria-hidden="true" tabindex="-1"></a>    <span class="do">## 2 - from classified map</span></span>
+<span id="cb14-152"><a href="#cb14-152" aria-hidden="true" tabindex="-1"></a>    <span class="co"># extract the values of each segment, as a table</span></span>
+<span id="cb14-153"><a href="#cb14-153" aria-hidden="true" tabindex="-1"></a>    seg.vals <span class="ot">&lt;-</span> <span class="fu">extract</span>(r.c, v.seg, <span class="at">fun =</span> table)</span>
+<span id="cb14-154"><a href="#cb14-154" aria-hidden="true" tabindex="-1"></a>    <span class="co"># as proportion</span></span>
+<span id="cb14-155"><a href="#cb14-155" aria-hidden="true" tabindex="-1"></a>    seg.vals.p <span class="ot">&lt;-</span> <span class="fu">apply</span>(seg.vals[, <span class="sc">-</span><span class="dv">1</span>], <span class="at">MAR =</span> <span class="dv">1</span>, <span class="at">FUN =</span> <span class="cf">function</span>(x) {x<span class="sc">/</span><span class="fu">sum</span>(x)} )</span>
+<span id="cb14-156"><a href="#cb14-156" aria-hidden="true" tabindex="-1"></a>    <span class="co">#2a - Normalized Shannon entropy</span></span>
+<span id="cb14-157"><a href="#cb14-157" aria-hidden="true" tabindex="-1"></a>    seg.ent <span class="ot">&lt;-</span> <span class="fu">apply</span>(seg.vals.p, <span class="at">MARGIN =</span> <span class="dv">2</span>, </span>
+<span id="cb14-158"><a href="#cb14-158" aria-hidden="true" tabindex="-1"></a>                     <span class="cf">function</span>(x) { aqp<span class="sc">::</span><span class="fu">shannonEntropy</span>(x, <span class="at">b =</span> <span class="fu">dim</span>(seg.vals.p)[<span class="dv">1</span>]) } )</span>
+<span id="cb14-159"><a href="#cb14-159" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="st">"Segment normalized Shannon entropy:"</span>)</span>
+<span id="cb14-160"><a href="#cb14-160" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">quantile</span>(seg.ent, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb14-161"><a href="#cb14-161" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb14-162"><a href="#cb14-162" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (plot.seg.numbers)  {</span>
+<span id="cb14-163"><a href="#cb14-163" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(r.c, <span class="at">main =</span> <span class="st">"Shannon entropy, [0..1]"</span>,</span>
+<span id="cb14-164"><a href="#cb14-164" aria-hidden="true" tabindex="-1"></a>                  <span class="at">legend =</span> <span class="cn">FALSE</span>, <span class="at">col =</span> col.ramp)</span>
+<span id="cb14-165"><a href="#cb14-165" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-166"><a href="#cb14-166" aria-hidden="true" tabindex="-1"></a>      terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="fu">round</span>(seg.ent, <span class="dv">2</span>), </span>
+<span id="cb14-167"><a href="#cb14-167" aria-hidden="true" tabindex="-1"></a>                  <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-168"><a href="#cb14-168" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb14-169"><a href="#cb14-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-170"><a href="#cb14-170" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb14-171"><a href="#cb14-171" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-172"><a href="#cb14-172" aria-hidden="true" tabindex="-1"></a>  <span class="co"># evaluation of segmentation quality</span></span>
+<span id="cb14-173"><a href="#cb14-173" aria-hidden="true" tabindex="-1"></a>  evaluation.results <span class="ot">&lt;-</span> <span class="fu">evaluate.it</span>(case_path,</span>
+<span id="cb14-174"><a href="#cb14-174" aria-hidden="true" tabindex="-1"></a>                                    layers,</span>
+<span id="cb14-175"><a href="#cb14-175" aria-hidden="true" tabindex="-1"></a>                                    segment.results[<span class="dv">1</span>], </span>
+<span id="cb14-176"><a href="#cb14-176" aria-hidden="true" tabindex="-1"></a>                                    f.z,</span>
+<span id="cb14-177"><a href="#cb14-177" aria-hidden="true" tabindex="-1"></a>                                    m)</span>
+<span id="cb14-178"><a href="#cb14-178" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Quality: (1) Inhomogeneity of the segment:</span></span>
+<span id="cb14-179"><a href="#cb14-179" aria-hidden="true" tabindex="-1"></a>  r_m.inhomo <span class="ot">&lt;-</span> <span class="fu">rast</span>(evaluation.results[<span class="dv">1</span>])</span>
+<span id="cb14-180"><a href="#cb14-180" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Quality: (2) Isolation from neighbours:</span></span>
+<span id="cb14-181"><a href="#cb14-181" aria-hidden="true" tabindex="-1"></a>  r_m.iso <span class="ot">&lt;-</span> <span class="fu">rast</span>(evaluation.results[<span class="dv">2</span>])</span>
+<span id="cb14-182"><a href="#cb14-182" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Overall segmentation quality:</span></span>
+<span id="cb14-183"><a href="#cb14-183" aria-hidden="true" tabindex="-1"></a>  r_m.qual <span class="ot">=</span> (<span class="dv">1</span> <span class="sc">-</span> r_m.inhomo<span class="sc">/</span>r_m.iso)</span>
+<span id="cb14-184"><a href="#cb14-184" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-185"><a href="#cb14-185" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot the three evaluations on one figure</span></span>
+<span id="cb14-186"><a href="#cb14-186" aria-hidden="true" tabindex="-1"></a>  <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb14-187"><a href="#cb14-187" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(r_m.inhomo, </span>
+<span id="cb14-188"><a href="#cb14-188" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">rev</span>(<span class="fu">heat.colors</span>(<span class="dv">64</span>)),</span>
+<span id="cb14-189"><a href="#cb14-189" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Inhomogeneity"</span>)</span>
+<span id="cb14-190"><a href="#cb14-190" aria-hidden="true" tabindex="-1"></a>  terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-191"><a href="#cb14-191" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (plot.seg.numbers) terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="st">"segment_id"</span>,</span>
+<span id="cb14-192"><a href="#cb14-192" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-193"><a href="#cb14-193" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb14-194"><a href="#cb14-194" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(r_m.iso, </span>
+<span id="cb14-195"><a href="#cb14-195" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">heat.colors</span>(<span class="dv">64</span>),</span>
+<span id="cb14-196"><a href="#cb14-196" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Isolation"</span>)</span>
+<span id="cb14-197"><a href="#cb14-197" aria-hidden="true" tabindex="-1"></a>  terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-198"><a href="#cb14-198" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (plot.seg.numbers) terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="st">"segment_id"</span>, </span>
+<span id="cb14-199"><a href="#cb14-199" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)<span class="co">#</span></span>
+<span id="cb14-200"><a href="#cb14-200" aria-hidden="true" tabindex="-1"></a>  <span class="co">#</span></span>
+<span id="cb14-201"><a href="#cb14-201" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>(r_m.qual, </span>
+<span id="cb14-202"><a href="#cb14-202" aria-hidden="true" tabindex="-1"></a>       <span class="at">col =</span> <span class="fu">topo.colors</span>(<span class="dv">64</span>),</span>
+<span id="cb14-203"><a href="#cb14-203" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Overall discrimination"</span>)</span>
+<span id="cb14-204"><a href="#cb14-204" aria-hidden="true" tabindex="-1"></a>  terra<span class="sc">::</span><span class="fu">plot</span>(v.seg, <span class="at">add =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb14-205"><a href="#cb14-205" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (plot.seg.numbers) terra<span class="sc">::</span><span class="fu">text</span>(v.seg, <span class="at">labels =</span> <span class="st">"segment_id"</span>,</span>
+<span id="cb14-206"><a href="#cb14-206" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">inside =</span> <span class="cn">TRUE</span>, <span class="at">cex =</span> <span class="fl">0.8</span>)</span>
+<span id="cb14-207"><a href="#cb14-207" aria-hidden="true" tabindex="-1"></a>  <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb14-208"><a href="#cb14-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-209"><a href="#cb14-209" aria-hidden="true" tabindex="-1"></a>  <span class="co"># show summary of quality metrics</span></span>
+<span id="cb14-210"><a href="#cb14-210" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Inhomogeneity values:"</span>)</span>
+<span id="cb14-211"><a href="#cb14-211" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">quantile</span>(<span class="fu">values</span>(r_m.inhomo), <span class="fu">seq</span>(.<span class="dv">1</span>, .<span class="dv">9</span>, <span class="at">by =</span> <span class="fl">0.1</span>)))</span>
+<span id="cb14-212"><a href="#cb14-212" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Isolation values:"</span>)</span>
+<span id="cb14-213"><a href="#cb14-213" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">quantile</span>(<span class="fu">values</span>(r_m.iso), <span class="fu">seq</span>(.<span class="dv">1</span>, .<span class="dv">9</span>, <span class="at">by =</span> <span class="fl">0.1</span>)))</span>
+<span id="cb14-214"><a href="#cb14-214" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Discrimination values:"</span>)</span>
+<span id="cb14-215"><a href="#cb14-215" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">quantile</span>(<span class="fu">values</span>(r_m.qual), <span class="fu">seq</span>(.<span class="dv">1</span>, .<span class="dv">9</span>, <span class="at">by =</span> <span class="fl">0.1</span>)))</span>
+<span id="cb14-216"><a href="#cb14-216" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb14-217"><a href="#cb14-217" aria-hidden="true" tabindex="-1"></a>  <span class="co"># return the number of segments</span></span>
+<span id="cb14-218"><a href="#cb14-218" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">dim</span>(v.seg)[<span class="dv">1</span>])</span>
+<span id="cb14-219"><a href="#cb14-219" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="export" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Export</h1>
+<p>Export the workspace, to be imported into case studies.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">save.image</span>(<span class="at">file =</span> <span class="st">"SegmentingSoilMaps_Functions.RData"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div id="quarto-reuse" class="quarto-appendix-contents"><div>CC-BY</div></div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

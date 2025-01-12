@@ -1,0 +1,235 @@
+---
+title:  Segmenting soil maps  -- Case Study GloSIS
+author:
+  - name: D G Rossiter
+    orcid: 0000-0003-4558-1286
+    email: david.rossiter@isric.org, d.g.rossiter@cornell.edu
+    url: https://www.css.cornell.edu/faculty/dgr2/pubs/index.html
+    affiliation:
+      - name: ISRIC-World Soil Information
+        city: Wageningen
+        state: NL
+      - name: Section of Soil & Crop Sciences, Cornell University
+        city: Ithaca
+        state: NY (USA)
+date: "`r format(Sys.Date(), '%d-%B-%Y')`"
+license: "CC-BY"
+link-citations: true
+csl: /Users/rossiter/Zotero/styles/apa.csl
+knitr: 
+  opts_chunk: 
+    tidy: FALSE
+format: 
+    html:
+      fig-align: "center"
+      fig-height: 8
+      fig-width: 12
+      number-sections: true
+      theme: "spacelab"
+      df-print: "paged"
+      code-fold: false
+      toc: true
+      toc-float: true
+      warning: false
+    pdf:
+      toc: true
+      fig-align: "center"
+      fig-height: 6
+      fig-width: 10
+      number-sections: true
+      colorlinks: true
+      hyperrefoptions:
+        - linktoc=all
+        - pdfwindowui
+        - pdfpagemode=FullScreen
+    docx:
+      title: "Segmenting soil maps  -- Case Study GloSIS"
+      author: "D G Rossiter (ORCID 0000-0003-4558-1286)"
+      toc: true
+      number-sections: true
+      highlight-style: github
+---
+
+# Abstract
+
+This applies the methods of `SegmentingSoilMaps.qmd` to a case study from the FAO's GloSIS.
+
+## Packages and Functions
+
+```{r}
+#| label: packages
+require(terra)
+require(tidyterra)  # for tidyverse functions applied to terra objects
+require(sf)
+require(sp) # some functions require older spatial data structures
+require(gstat) # variograms
+require(aqp)   # entropy
+require(ggplot2)
+require(RColorBrewer)
+```
+
+Functions prepared in `SegmentingSoilMaps.qmd`:
+
+```{r}
+load(file = "SegmentingSoilMaps_Functions.RData")
+```
+
+## Source maps
+
+
+The FAO stitched together national contributions with some gap filling to create a SOC stock map for the world.
+
+References:
+
+FAO. (2018). Global Soil Organic Carbon Map (GSOCmap): Technical Report. FAO. https://www.fao.org/documents/card/en/c/I8891EN
+
+Pillar 4 Working Group. (2017). GSP Guidelines for sharing national data/information to compile a Global Soil Organic Carbon (GSOC) map (p. 26). FAO. http://www.fao.org/3/a-bp164e.pdf.
+
+
+Data downloaded from <https://data.apps.fao.org/glosis/?lang=en>.
+
+A separate script downloads the GSOC layer, crops it to a study area, classifies it according to user-defined cutpoints, and writes it as GeoTIFF, also with header XML. It is placed in the following directory
+
+```{r}
+#| label: paths-glosis
+case_path <- file.path(base_path, "GloSIS") 
+```
+
+A function to plot the soil map boundaries under the segmentation boundaries:
+
+Arguments:
+
+1. `layers`, the list of layers that went into the segmentation
+
+2. `f.z`, the shift and motifel sizes
+
+3. `v.soil.map` the vector soil map covering the area
+
+```{r}
+#| label: plot-glosis-segs
+plot.glosis.seg <- function(layer, f.z, v.soil.map) {
+  segment_GPKG <- file.path(case_path, "results", 
+                            paste0(layer, "_", f.z[1], "_", f.z[2], "_seg.gpkg")) # polgons
+  # the segments as a vector polygon `terra` object
+  v.seg <- vect(segment_GPKG)
+  # using ggplot -- must convert to sf objects
+  v.sf <- st_as_sf(v.seg)
+  v.soil.map.sf <- st_as_sf(v.soil.map)
+  ggplot(data = v.soil.map.sf) +
+    geom_sf() +
+    geom_sf(data = v.sf, color = "red", fill = NA)
+}
+```
+
+
+## Computation
+
+### Central Europe
+
+Test area 1 is central Europe, units are square root of SOC stock 0-30 cm $\mathrm{t} \; \mathrm{ha}^{-1}$.
+
+Here we have only one layer. GloSIS resolution is 1 x 1 km, but grid resolution is = 10 x 10 km, because the minimum shift is 10 cells; so the effective scale is 1:4M. 
+
+```{r}
+#| label: compute-glosis-ce-400k
+grid.dimensions(4000000)
+compute.it(10, case_path, "gsoc_ce_sqrt")
+```
+
+Try it with larger patches:
+
+```{r}
+#| label: compute-glosis-ce-1M
+grid.dimensions(8000000)
+compute.it(20, case_path, "gsoc_ce_sqrt")
+```
+
+Both scales give satisfactory results. The smaller scale gives larger segments that align well with regional soil geography.
+
+### NE México, west Texas, New Mexico
+
+Test area 2 is north-east México, western Texas and most of New Mexico (USA), same units, resolution and effective scale. The extent is `c(-110, -100, 27, 37)`, projected to a local Albers Equal-Area CRS.
+
+Compare the Mexican part with the Mexican general soil map 1:1M downloaded from [INEGI](https://www.inegi.org.mx/temas/edafologia/#descargas), the USA part from 
+gNATSGO downloaded from [NRCS Box](https://nrcs.app.box.com/v/soils/folder/18247487156).
+
+```{r}
+#| label: soil-maps
+file.name <- "/Users/rossiter/tmp/NM_TX_MEX/GeneralSoilMap.gpkg"
+if (file.exists(file.name)) {
+  v.nm <- vect(file.name)
+} else {
+  # México
+  v <- vect("/Users/rossiter/tmp/México/Suelos.shp")
+  # project and crop to extent of raster
+  r <- rast(file.path(case_path, "ds/gsoc_nm.tif"))
+  v <- project(v, r)
+  v.mex <- crop(v, r)
+  head(v.mex)
+  v.mex <- filter(v.mex, !is.na(NOM_SUE1))
+  # USA gNATSGO maps downloaded from NRCS Box: https://nrcs.app.box.com/v/soils/folder/18247487156?page=1
+  # Texas
+  v.1 <- vect("/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_TX_[2016-10-13]/spatial/gsmsoilmu_a_tx.shp")
+  v.1 <- project(v.1, r)
+  v.1 <- crop(v.1, r)
+  # plot(v.1)
+  # New Mexico
+  v.2 <- vect("/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_NM_[2016-10-13]/spatial/gsmsoilmu_a_nm.shp")
+  v.2 <- project(v.2, r)
+  v.2 <- crop(v.2, r)
+  # plot(v.2)
+  # Arizona
+  v.3 <- vect("/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_AZ_[2016-10-13]/spatial/gsmsoilmu_a_az.shp")
+  v.3 <- project(v.3, r)
+  v.3 <- crop(v.3, r)
+  # plot(v.3)
+  v.nm <- rbind(v.1, v.2, v.3, v.mex)
+  # Save the combined map, to avoid re-computation:
+  writeVector(v.nm, filename = "/Users/rossiter/tmp/NM_TX_MEX/GeneralSoilMap.gpkg",
+              overwrite = TRUE)
+}
+# plot, with Mexican WRB classes
+v.nm.sf <- st_as_sf(v.nm)
+ggplot(data = v.nm.sf) +  
+  geom_sf(aes(fill=NOM_SUE1)) +
+  labs(title = "Case Study area", fill = "FAO Legend")
+```
+
+### 1:4M
+
+```{r}
+#| label: compute-glosis-nm-400k
+grid.dimensions(4000000)
+x <- compute.it(10, case_path, 
+                "gsoc_nm", palette = "YlOrRd",
+                plot.seg.numbers = TRUE)
+plot.glosis.seg("gsoc_nm", c(10,10), v.nm)
+```
+
+### 1:8M
+
+Try it with larger patches:
+
+```{r}
+#| label: compute-glosis-nm-1M
+grid.dimensions(8000000)
+x <- compute.it(20, case_path, 
+                "gsoc_nm", palette = "YlOrRd",
+                plot.seg.numbers = TRUE,
+                variogram.analysis = TRUE)
+plot.glosis.seg("gsoc_nm", c(20,20), v.nm)
+```
+
+### 1:16M
+
+```{r}
+#| label: compute-glosis-nm-4M
+grid.dimensions(16000000)
+x <- compute.it(40, case_path, 
+                "gsoc_nm", palette = "YlOrRd",
+                plot.seg.numbers = TRUE,
+                variogram.analysis = TRUE)  # few segments, so fit variograms
+plot.glosis.seg("gsoc_nm", c(40,40), v.nm)
+```
+
+

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="D G Rossiter">
+<meta name="dcterms.date" content="2024-09-17">
+
+<title>Segmenting soil maps – Case Study GloSIS</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/clipboard/clipboard.min.js"></script>
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/quarto.js"></script>
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/popper.min.js"></script>
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/anchor.min.js"></script>
+<link href="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<link href="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet">
+<script src="SegmentingSoilMaps_CaseStudy_GSOC_files/libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#abstract" id="toc-abstract" class="nav-link active" data-scroll-target="#abstract"><span class="header-section-number">1</span> Abstract</a>
+  <ul class="collapse">
+  <li><a href="#packages-and-functions" id="toc-packages-and-functions" class="nav-link" data-scroll-target="#packages-and-functions"><span class="header-section-number">1.1</span> Packages and Functions</a></li>
+  <li><a href="#source-maps" id="toc-source-maps" class="nav-link" data-scroll-target="#source-maps"><span class="header-section-number">1.2</span> Source maps</a></li>
+  <li><a href="#computation" id="toc-computation" class="nav-link" data-scroll-target="#computation"><span class="header-section-number">1.3</span> Computation</a>
+  <ul class="collapse">
+  <li><a href="#central-europe" id="toc-central-europe" class="nav-link" data-scroll-target="#central-europe"><span class="header-section-number">1.3.1</span> Central Europe</a></li>
+  <li><a href="#ne-méxico-west-texas-new-mexico" id="toc-ne-méxico-west-texas-new-mexico" class="nav-link" data-scroll-target="#ne-méxico-west-texas-new-mexico"><span class="header-section-number">1.3.2</span> NE México, west Texas, New Mexico</a></li>
+  <li><a href="#m" id="toc-m" class="nav-link" data-scroll-target="#m"><span class="header-section-number">1.3.3</span> 1:4M</a></li>
+  <li><a href="#m-1" id="toc-m-1" class="nav-link" data-scroll-target="#m-1"><span class="header-section-number">1.3.4</span> 1:8M</a></li>
+  <li><a href="#m-2" id="toc-m-2" class="nav-link" data-scroll-target="#m-2"><span class="header-section-number">1.3.5</span> 1:16M</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="SegmentingSoilMaps_CaseStudy_GSOC.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li><li><a href="SegmentingSoilMaps_CaseStudy_GSOC.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Segmenting soil maps – Case Study GloSIS</h1>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Author</div>
+  <div class="quarto-title-meta-heading">Affiliations</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author"><a href="https://www.css.cornell.edu/faculty/dgr2/pubs/index.html">D G Rossiter</a> <a href="https://orcid.org/0000-0003-4558-1286" class="quarto-title-author-orcid"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA2ZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo1N0NEMjA4MDI1MjA2ODExOTk0QzkzNTEzRjZEQTg1NyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDozM0NDOEJGNEZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozM0NDOEJGM0ZGNTcxMUUxODdBOEVCODg2RjdCQ0QwOSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZDN0YxMTc0MDcyMDY4MTE5NUZFRDc5MUM2MUUwNEREIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjU3Q0QyMDgwMjUyMDY4MTE5OTRDOTM1MTNGNkRBODU3Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+84NovQAAAR1JREFUeNpiZEADy85ZJgCpeCB2QJM6AMQLo4yOL0AWZETSqACk1gOxAQN+cAGIA4EGPQBxmJA0nwdpjjQ8xqArmczw5tMHXAaALDgP1QMxAGqzAAPxQACqh4ER6uf5MBlkm0X4EGayMfMw/Pr7Bd2gRBZogMFBrv01hisv5jLsv9nLAPIOMnjy8RDDyYctyAbFM2EJbRQw+aAWw/LzVgx7b+cwCHKqMhjJFCBLOzAR6+lXX84xnHjYyqAo5IUizkRCwIENQQckGSDGY4TVgAPEaraQr2a4/24bSuoExcJCfAEJihXkWDj3ZAKy9EJGaEo8T0QSxkjSwORsCAuDQCD+QILmD1A9kECEZgxDaEZhICIzGcIyEyOl2RkgwAAhkmC+eAm0TAAAAABJRU5ErkJggg=="></a></p>
+  </div>
+    <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            ISRIC-World Soil Information
+          </p>
+        <p class="affiliation">
+            Section of Soil &amp; Crop Sciences, Cornell University
+          </p>
+      </div>
+    </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 17, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="abstract" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Abstract</h1>
+<p>This applies the methods of <code>SegmentingSoilMaps.qmd</code> to a case study from the FAO’s GloSIS.</p>
+<section id="packages-and-functions" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="packages-and-functions"><span class="header-section-number">1.1</span> Packages and Functions</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(terra)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(tidyterra)  <span class="co"># for tidyverse functions applied to terra objects</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(sf)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(sp) <span class="co"># some functions require older spatial data structures</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(gstat) <span class="co"># variograms</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(aqp)   <span class="co"># entropy</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(ggplot2)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span>(RColorBrewer)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Functions prepared in <code>SegmentingSoilMaps.qmd</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">load</span>(<span class="at">file =</span> <span class="st">"SegmentingSoilMaps_Functions.RData"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="source-maps" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="source-maps"><span class="header-section-number">1.2</span> Source maps</h2>
+<p>The FAO stitched together national contributions with some gap filling to create a SOC stock map for the world.</p>
+<p>References:</p>
+<p>FAO. (2018). Global Soil Organic Carbon Map (GSOCmap): Technical Report. FAO. https://www.fao.org/documents/card/en/c/I8891EN</p>
+<p>Pillar 4 Working Group. (2017). GSP Guidelines for sharing national data/information to compile a Global Soil Organic Carbon (GSOC) map (p.&nbsp;26). FAO. http://www.fao.org/3/a-bp164e.pdf.</p>
+<p>Data downloaded from <a href="https://data.apps.fao.org/glosis/?lang=en" class="uri">https://data.apps.fao.org/glosis/?lang=en</a>.</p>
+<p>A separate script downloads the GSOC layer, crops it to a study area, classifies it according to user-defined cutpoints, and writes it as GeoTIFF, also with header XML. It is placed in the following directory</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>case_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(base_path, <span class="st">"GloSIS"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A function to plot the soil map boundaries under the segmentation boundaries:</p>
+<p>Arguments:</p>
+<ol type="1">
+<li><p><code>layers</code>, the list of layers that went into the segmentation</p></li>
+<li><p><code>f.z</code>, the shift and motifel sizes</p></li>
+<li><p><code>v.soil.map</code> the vector soil map covering the area</p></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plot.glosis.seg <span class="ot">&lt;-</span> <span class="cf">function</span>(layer, f.z, v.soil.map) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  segment_GPKG <span class="ot">&lt;-</span> <span class="fu">file.path</span>(case_path, <span class="st">"results"</span>, </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">paste0</span>(layer, <span class="st">"_"</span>, f.z[<span class="dv">1</span>], <span class="st">"_"</span>, f.z[<span class="dv">2</span>], <span class="st">"_seg.gpkg"</span>)) <span class="co"># polgons</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># the segments as a vector polygon `terra` object</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  v.seg <span class="ot">&lt;-</span> <span class="fu">vect</span>(segment_GPKG)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># using ggplot -- must convert to sf objects</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  v.sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(v.seg)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  v.soil.map.sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(v.soil.map)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="at">data =</span> v.soil.map.sf) <span class="sc">+</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>() <span class="sc">+</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="at">data =</span> v.sf, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">fill =</span> <span class="cn">NA</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="computation" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="computation"><span class="header-section-number">1.3</span> Computation</h2>
+<section id="central-europe" class="level3" data-number="1.3.1">
+<h3 data-number="1.3.1" class="anchored" data-anchor-id="central-europe"><span class="header-section-number">1.3.1</span> Central Europe</h3>
+<p>Test area 1 is central Europe, units are square root of SOC stock 0-30 cm <span class="math inline">\(\mathrm{t} \; \mathrm{ha}^{-1}\)</span>.</p>
+<p>Here we have only one layer. GloSIS resolution is 1 x 1 km, but grid resolution is = 10 x 10 km, because the minimum shift is 10 cells; so the effective scale is 1:4M.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.dimensions</span>(<span class="dv">4000000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">compute.it</span>(<span class="dv">10</span>, case_path, <span class="st">"gsoc_ce_sqrt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Shift side: 10"
+[1] "Shift size (grid units): 10 ; (map units): 10000"
+[1] "Effective scale 1:4000000"
+[1] "Motifel size (grid units): 15 ; (map units): 15000"
+[1] "Number of segments: 457"</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-ce-400k-1.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment standard deviations:"
+       0%       25%       50%       75%      100% 
+0.1312411 0.5873976 0.8603802 1.2764593 4.5935163 
+[1] "Segment normalized Shannon entropy:"
+       0%       25%       50%       75%      100% 
+0.0000000 0.2847332 0.3711466 0.4637800 0.6770719 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-ce-400k-2.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Inhomogeneity values:"
+       10%        20%        30%        40%        50%        60%        70% 
+0.02702985 0.04229316 0.04817465 0.05227100 0.05843853 0.06640994 0.07301078 
+       80%        90% 
+0.08240955 0.10169284 
+[1] "Isolation values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.1397548 0.1660608 0.1874595 0.2127784 0.2334480 0.2531715 0.2783481 0.3206417 
+      90% 
+0.3971494 
+[1] "Discrimination values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.5895973 0.6299897 0.6705355 0.6892246 0.7074525 0.7505808 0.7712788 0.8244459 
+      90% 
+0.9311577 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 457</code></pre>
+</div>
+</div>
+<p>Try it with larger patches:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.dimensions</span>(<span class="dv">8000000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 20000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">compute.it</span>(<span class="dv">20</span>, case_path, <span class="st">"gsoc_ce_sqrt"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Shift side: 20"
+[1] "Shift size (grid units): 20 ; (map units): 20000"
+[1] "Effective scale 1:8000000"
+[1] "Motifel size (grid units): 30 ; (map units): 30000"
+[1] "Number of segments: 126"</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-ce-1M-1.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment standard deviations:"
+       0%       25%       50%       75%      100% 
+0.2621605 0.6665493 1.0215455 1.4290891 3.7152991 
+[1] "Segment normalized Shannon entropy:"
+       0%       25%       50%       75%      100% 
+0.0000000 0.3085890 0.4014313 0.4885495 0.6642290 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-ce-1M-2.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Inhomogeneity values:"
+       10%        20%        30%        40%        50%        60%        70% 
+0.02467606 0.03982069 0.04959670 0.05375820 0.06470707 0.06876635 0.07152007 
+       80%        90% 
+0.08200398 0.10626849 
+[1] "Isolation values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.1288011 0.1599540 0.1864472 0.2076522 0.2360226 0.2548486 0.2683553 0.3064130 
+      90% 
+0.3591078 
+[1] "Discrimination values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.6234917 0.6595963 0.6785039 0.7019309 0.7116706 0.7293896 0.7563588 0.8022102 
+      90% 
+0.8720493 </code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 126</code></pre>
+</div>
+</div>
+<p>Both scales give satisfactory results. The smaller scale gives larger segments that align well with regional soil geography.</p>
+</section>
+<section id="ne-méxico-west-texas-new-mexico" class="level3" data-number="1.3.2">
+<h3 data-number="1.3.2" class="anchored" data-anchor-id="ne-méxico-west-texas-new-mexico"><span class="header-section-number">1.3.2</span> NE México, west Texas, New Mexico</h3>
+<p>Test area 2 is north-east México, western Texas and most of New Mexico (USA), same units, resolution and effective scale. The extent is <code>c(-110, -100, 27, 37)</code>, projected to a local Albers Equal-Area CRS.</p>
+<p>Compare the Mexican part with the Mexican general soil map 1:1M downloaded from <a href="https://www.inegi.org.mx/temas/edafologia/#descargas">INEGI</a>, the USA part from gNATSGO downloaded from <a href="https://nrcs.app.box.com/v/soils/folder/18247487156">NRCS Box</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>file.name <span class="ot">&lt;-</span> <span class="st">"/Users/rossiter/tmp/NM_TX_MEX/GeneralSoilMap.gpkg"</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(file.name)) {</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  v.nm <span class="ot">&lt;-</span> <span class="fu">vect</span>(file.name)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># México</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  v <span class="ot">&lt;-</span> <span class="fu">vect</span>(<span class="st">"/Users/rossiter/tmp/México/Suelos.shp"</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># project and crop to extent of raster</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="fu">file.path</span>(case_path, <span class="st">"ds/gsoc_nm.tif"</span>))</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  v <span class="ot">&lt;-</span> <span class="fu">project</span>(v, r)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  v.mex <span class="ot">&lt;-</span> <span class="fu">crop</span>(v, r)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(v.mex)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  v.mex <span class="ot">&lt;-</span> <span class="fu">filter</span>(v.mex, <span class="sc">!</span><span class="fu">is.na</span>(NOM_SUE1))</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># USA gNATSGO maps downloaded from NRCS Box: https://nrcs.app.box.com/v/soils/folder/18247487156?page=1</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Texas</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">vect</span>(<span class="st">"/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_TX_[2016-10-13]/spatial/gsmsoilmu_a_tx.shp"</span>)</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">project</span>(v<span class="fl">.1</span>, r)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">crop</span>(v<span class="fl">.1</span>, r)</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot(v.1)</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># New Mexico</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">vect</span>(<span class="st">"/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_NM_[2016-10-13]/spatial/gsmsoilmu_a_nm.shp"</span>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">project</span>(v<span class="fl">.2</span>, r)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">crop</span>(v<span class="fl">.2</span>, r)</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot(v.2)</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Arizona</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.3</span> <span class="ot">&lt;-</span> <span class="fu">vect</span>(<span class="st">"/Users/rossiter/tmp/USA/gNATSGO/wss_gsmsoil_AZ_[2016-10-13]/spatial/gsmsoilmu_a_az.shp"</span>)</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.3</span> <span class="ot">&lt;-</span> <span class="fu">project</span>(v<span class="fl">.3</span>, r)</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  v<span class="fl">.3</span> <span class="ot">&lt;-</span> <span class="fu">crop</span>(v<span class="fl">.3</span>, r)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># plot(v.3)</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  v.nm <span class="ot">&lt;-</span> <span class="fu">rbind</span>(v<span class="fl">.1</span>, v<span class="fl">.2</span>, v<span class="fl">.3</span>, v.mex)</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Save the combined map, to avoid re-computation:</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">writeVector</span>(v.nm, <span class="at">filename =</span> <span class="st">"/Users/rossiter/tmp/NM_TX_MEX/GeneralSoilMap.gpkg"</span>,</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>              <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a><span class="co"># plot, with Mexican WRB classes</span></span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>v.nm.sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(v.nm)</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> v.nm.sf) <span class="sc">+</span>  </span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill=</span>NOM_SUE1)) <span class="sc">+</span></span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Case Study area"</span>, <span class="at">fill =</span> <span class="st">"FAO Legend"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/soil-maps-1.png" class="img-fluid" width="1152"></p>
+</div>
+</div>
+</section>
+<section id="m" class="level3" data-number="1.3.3">
+<h3 data-number="1.3.3" class="anchored" data-anchor-id="m"><span class="header-section-number">1.3.3</span> 1:4M</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.dimensions</span>(<span class="dv">4000000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 10000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">compute.it</span>(<span class="dv">10</span>, case_path, </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"gsoc_nm"</span>, <span class="at">palette =</span> <span class="st">"YlOrRd"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">plot.seg.numbers =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Shift side: 10"
+[1] "Shift size (grid units): 10 ; (map units): 10000"
+[1] "Effective scale 1:4000000"
+[1] "Motifel size (grid units): 15 ; (map units): 15000"
+[1] "Number of segments: 705"</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-400k-1.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment standard deviations:"
+        0%        25%        50%        75%       100% 
+ 0.9108829  4.5173180  6.4618284  8.8422569 34.2070555 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-400k-2.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment normalized Shannon entropy:"
+        0%        25%        50%        75%       100% 
+0.06343569 0.42851489 0.52629244 0.61137472 0.90352971 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-400k-3.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-400k-4.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Inhomogeneity values:"
+       10%        20%        30%        40%        50%        60%        70% 
+0.00000000 0.05676927 0.06805054 0.07591566 0.08306529 0.09070725 0.10078147 
+       80%        90% 
+0.11634346 0.13987166 
+[1] "Isolation values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.1725668 0.1944887 0.2136022 0.2294890 0.2465191 0.2692517 0.2869328 0.3162075 
+      90% 
+0.3560098 
+[1] "Discrimination values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.4966634 0.5542357 0.5914163 0.6192305 0.6506680 0.6816561 0.7150089 0.7653438 
+      90% 
+1.0000000 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot.glosis.seg</span>(<span class="st">"gsoc_nm"</span>, <span class="fu">c</span>(<span class="dv">10</span>,<span class="dv">10</span>), v.nm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-400k-5.png" class="img-fluid" width="1152"></p>
+</div>
+</div>
+</section>
+<section id="m-1" class="level3" data-number="1.3.4">
+<h3 data-number="1.3.4" class="anchored" data-anchor-id="m-1"><span class="header-section-number">1.3.4</span> 1:8M</h3>
+<p>Try it with larger patches:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.dimensions</span>(<span class="dv">8000000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 20000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">compute.it</span>(<span class="dv">20</span>, case_path, </span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"gsoc_nm"</span>, <span class="at">palette =</span> <span class="st">"YlOrRd"</span>,</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">plot.seg.numbers =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">variogram.analysis =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Shift side: 20"
+[1] "Shift size (grid units): 20 ; (map units): 20000"
+[1] "Effective scale 1:8000000"
+[1] "Motifel size (grid units): 30 ; (map units): 30000"
+[1] "Number of segments: 166"</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-1.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment standard deviations:"
+       0%       25%       50%       75%      100% 
+ 3.111283  5.695853  7.728211 10.157222 23.044464 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-2.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Partial sills:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  6.448  26.678  45.650  80.704  99.876 660.908       5 
+[1] "Nuggets:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  0.000   1.083   7.047  12.962  16.509 178.432       5 
+[1] "Proportional nuggets:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+0.00000 0.02394 0.11453 0.14316 0.22357 0.60734       5 
+[1] "Ranges:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+  1.364   4.161   6.501   8.389  10.090  80.367       5 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-3.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-4.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-5.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment normalized Shannon entropy:"
+       0%       25%       50%       75%      100% 
+0.2851578 0.4905656 0.5809978 0.6596307 0.8885886 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-6.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-7.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Inhomogeneity values:"
+       10%        20%        30%        40%        50%        60%        70% 
+0.00000000 0.05024205 0.06328405 0.07348538 0.08321472 0.08956826 0.09575086 
+       80%        90% 
+0.10649776 0.13119991 
+[1] "Isolation values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.1678813 0.1858871 0.2069200 0.2151494 0.2318112 0.2592700 0.2780054 0.3047282 
+      90% 
+0.3398866 
+[1] "Discrimination values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.5142076 0.5744299 0.6042183 0.6306152 0.6497620 0.6786090 0.7097228 0.7543779 
+      90% 
+1.0000000 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot.glosis.seg</span>(<span class="st">"gsoc_nm"</span>, <span class="fu">c</span>(<span class="dv">20</span>,<span class="dv">20</span>), v.nm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-1M-8.png" class="img-fluid" width="1152"></p>
+</div>
+</div>
+</section>
+<section id="m-2" class="level3" data-number="1.3.5">
+<h3 data-number="1.3.5" class="anchored" data-anchor-id="m-2"><span class="header-section-number">1.3.5</span> 1:16M</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.dimensions</span>(<span class="dv">16000000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 40000</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">compute.it</span>(<span class="dv">40</span>, case_path, </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"gsoc_nm"</span>, <span class="at">palette =</span> <span class="st">"YlOrRd"</span>,</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">plot.seg.numbers =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">variogram.analysis =</span> <span class="cn">TRUE</span>)  <span class="co"># few segments, so fit variograms</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Shift side: 40"
+[1] "Shift size (grid units): 40 ; (map units): 40000"
+[1] "Effective scale 1:16000000"
+[1] "Motifel size (grid units): 60 ; (map units): 60000"
+[1] "Number of segments: 43"</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-1.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment standard deviations:"
+       0%       25%       50%       75%      100% 
+ 4.898485  7.358466  9.014642 10.949291 16.998303 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-2.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Partial sills:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  12.08   41.72   58.12   78.54   88.26  269.48 
+[1] "Nuggets:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   11.74   17.78   24.26   27.92  115.09 
+[1] "Proportional nuggets:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.0000  0.1641  0.2369  0.2524  0.3195  0.5880 
+[1] "Ranges:"
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  4.686   8.070  12.316  16.498  20.309  56.794 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-3.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-4.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-5.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Segment normalized Shannon entropy:"
+       0%       25%       50%       75%      100% 
+0.4747764 0.5769652 0.6378687 0.6932195 0.8669945 </code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-6.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-7.png" class="img-fluid" width="1152"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Inhomogeneity values:"
+       10%        20%        30%        40%        50%        60%        70% 
+0.03167914 0.06591167 0.07206806 0.07896348 0.08439091 0.09273546 0.09403772 
+       80%        90% 
+0.10519935 0.11776281 
+[1] "Isolation values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.1639785 0.1683171 0.2143908 0.2240083 0.2379346 0.2835451 0.3047591 0.3053249 
+      90% 
+0.3279515 
+[1] "Discrimination values:"
+      10%       20%       30%       40%       50%       60%       70%       80% 
+0.5149314 0.5608781 0.5915932 0.6288374 0.6681295 0.6962729 0.6987442 0.7424995 
+      90% 
+0.8149507 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot.glosis.seg</span>(<span class="st">"gsoc_nm"</span>, <span class="fu">c</span>(<span class="dv">40</span>,<span class="dv">40</span>), v.nm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="SegmentingSoilMaps_CaseStudy_GSOC_files/figure-html/compute-glosis-nm-4M-8.png" class="img-fluid" width="1152"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div id="quarto-reuse" class="quarto-appendix-contents"><div>CC-BY</div></div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
