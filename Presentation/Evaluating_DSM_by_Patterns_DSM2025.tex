@@ -96,14 +96,14 @@ Conceptual basis (McBratney \textit{et al.} 2013): $S = f(s, c, o, r, p, a, n) +
 \end{figure}
 \end{frame}
 
-\begin{frame}
-  \frametitle{Detail; uncertainty}
-\begin{figure}
-\includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsDetail.png}
-\hfill
-\includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsUncertainty.png}
-\end{figure}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Detail; uncertainty}
+% \begin{figure}
+% \includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsDetail.png}
+% \hfill
+% \includegraphics[width=0.4\textwidth]{./graphics_david/SoilGridsUncertainty.png}
+% \end{figure}
+% \end{frame}
 
 \begin{frame}
   \frametitle{How have these maps been evaluated?}
@@ -147,16 +147,16 @@ From the \textbf{mapper's} point of view:
 \end{figure}
 \end{frame}
 
-\begin{frame}
-  \frametitle{\emph{Different} ML methods, covariates,  points}
-    \begin{figure}
-        \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07a.png}
-        \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07b.png}
-\par        
-    Central NY State (USA), pH x 10, 0-5~cm; from Rossiter \emph{et al.} (2022)
-    \end{figure}
- Some obvious difference in \textbf{values} but also \textbf{patterns}.
-\end{frame}
+% \begin{frame}
+%   \frametitle{\emph{Different} ML methods, covariates,  points}
+%     \begin{figure}
+%         \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07a.png}
+%         \includegraphics[width=0.49\linewidth]{./graphics_david/Fig07b.png}
+% \par        
+%     Central NY State (USA), pH x 10, 0-5~cm; from Rossiter \emph{et al.} (2022)
+%     \end{figure}
+%  Some obvious difference in \textbf{values} but also \textbf{patterns}.
+% \end{frame}
 
 \begin{frame}
   \frametitle{\emph{Same} ML method, covariates, points; different
@@ -178,13 +178,13 @@ From the \textbf{mapper's} point of view:
 \end{frame}
 
 
-\begin{frame}
-  \frametitle{Different surveys, different patterns -- which is better?}
-    \begin{figure}
-        \centering
-        \includegraphics[height=0.6\textheight]{./graphics_david/GLOSIS_SOC_LasCrucesRegion.png}
-     \end{figure} 
-\end{frame}
+% \begin{frame}
+%   \frametitle{Different surveys, different patterns -- which is better?}
+%     \begin{figure}
+%         \centering
+%         \includegraphics[height=0.6\textheight]{./graphics_david/GLOSIS_SOC_LasCrucesRegion.png}
+%      \end{figure} 
+% \end{frame}
 
 
 \begin{frame}{Problems with evaluation by point statistics -- External}
@@ -215,58 +215,6 @@ From the \textbf{map user's} point of view:
 \end{frame}
 
 
-\section{Patterns of soils on the landscape}
-
-\begin{frame}{Scale of patterns of soils on the landscape}
-\begin{itemize}
-    \item Catena/hillside/toposequence scale
-    \begin{itemize}
-        \item landscape segments
-        \item DSM resolution 50--250~m
-        \item mapping scale 1:12k - 1:62.5k
-        \item minimum mappable area (MMA) 0.625-10~ha
-        \end{itemize}
-    \item Detailed scale within segments
-    \begin{itemize}
-        \item precision agriculture
-        \item DSM resolution 1-10~m
-        \item mapping scale 1:1k - 1:4k
-    \end{itemize}
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Soil-landscape polygon maps}
-\begin{figure}
-    \centering    \includegraphics[width=\textwidth]{./graphics_david/pq49b_map_3_part.jpg}
-\end{figure}  
-\end{frame}
-
-\begin{frame}{Conceptual basis of the soil-landscape model}
-    \begin{itemize}
-        \item Soilscape \textbf{segments} with different \textbf{combinations of soil-forming factors}
-        \item Majority of heterogeneity is \textbf{between} polygons
-        \item Identified by a \textbf{conceptual paradigm} (Hudson 1992), used for conventional mapping
-        \item identifiable \textbf{transitions} (but see Lagacherie \textit{et al.} 1996)
-        \item \textbf{scale-independent} (??)
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Soilscape segments, 1:12k -- 1:24k}
-    \begin{figure}
-        \centering
-\includegraphics[height=0.65\textheight]{./graphics_david/NY-2010-09-28-14.pdf}\\
-{Conceptual block diagram, Otsego County NY (USA)}
-     \end{figure}
-\end{frame}
-
-% \begin{frame}{Detailed (1:24k) soil survey: pattern of landscape segments}
-%     \begin{figure}
-%         \centering
-% \includegraphics[height=0.7\textheight]{./graphics_david/PonyHollow_SoilWeb_Screenshot_relief.png}\\
-% {\footnotesize centre -76\textdegree 40'23" E, 42\textdegree 18'10" N}
-%      \end{figure}
-%     \end{frame}
-
 \section{Pattern analysis}
 
 \begin{frame}{Pattern analysis}
@@ -275,7 +223,7 @@ From the \textbf{map user's} point of view:
         \item Long history in \textbf{image analysis} and \textbf{landscape ecology}
         \item Applied to landscape mosaics (FRAGSTATS)
         \item R packages  \texttt{motif}, \texttt{landscapemetrics}, \texttt{rassta}, \texttt{superpixels} (\textbf{aggregation})
-        \item Unix program \texttt{geoPat}\footnote{\url{https://github.com/Nowosad/geopat2}} (\textbf{segmentation})
+        \item Unix program \texttt{geoPAT2}\footnote{\url{https://github.com/Nowosad/geopat2}} (\textbf{segmentation})
    \end{itemize}
 \end{frame}
 
@@ -394,21 +342,21 @@ From the \textbf{map user's} point of view:
     where $p_i$ is the proportion of pixels of class $i = (1 \ldots N)$
 \end{frame}
 
-\begin{frame}{Example metric: Co-occurrence vector}
-  \begin{itemize}
-  \item 
-    Summarizes the entire \textbf{adjacency structure} of a map.% as a  normalized co-occurrence matrix: which classes are spatially adjacent to each other?
-  \item
-    This is a probability vector for the \textbf{spatial co-occurrence} of  different   classes in the map.
-    \begin{itemize}
-    \item e.g., different soil classes -- do we expect Histosols next to Vertisols?
-    \item e.g., different classes of a classified property -- do we expect abrupt changes of pH class?
-    \end{itemize}
- %   \item
-%    The ``distance'' between co-occurrence vectors from two maps can be computed   as a measure of the (dis)similarity between these structures
-%    (Jensen-Shannon distance, used to compare probability distributions)
-  \end{itemize}
-\end{frame}
+% \begin{frame}{Example metric: Co-occurrence vector}
+%   \begin{itemize}
+%   \item 
+%     Summarizes the entire \textbf{adjacency structure} of a map.% as a  normalized co-occurrence matrix: which classes are spatially adjacent to each other?
+%   \item
+%     This is a probability vector for the \textbf{spatial co-occurrence} of  different   classes in the map.
+%     \begin{itemize}
+%     \item e.g., different soil classes -- do we expect Histosols next to Vertisols?
+%     \item e.g., different classes of a classified property -- do we expect abrupt changes of pH class?
+%     \end{itemize}
+%  %   \item
+% %    The ``distance'' between co-occurrence vectors from two maps can be computed   as a measure of the (dis)similarity between these structures
+% %    (Jensen-Shannon distance, used to compare probability distributions)
+%   \end{itemize}
+% \end{frame}
 
 
 \begin{frame}{Comparing maps with these metrics}
@@ -478,11 +426,11 @@ From the \textbf{map user's} point of view:
     SoilGrids v.20 pH~x~10 values \hfill Supercells with mean pH~x~10
 \end{frame}
 
-\begin{frame}{Aggregation example -- BIS-4D soil property class maps of NL}
-    \begin{figure}
-        \centering        \includegraphics[height=0.70\textheight]{graphics_david/plot-supercells-bis4d-1-jsd-all-4up-1.png}
-      \end{figure}
-\end{frame}
+% \begin{frame}{Aggregation example -- BIS-4D soil property class maps of NL}
+%     \begin{figure}
+%         \centering        \includegraphics[height=0.70\textheight]{graphics_david/plot-supercells-bis4d-1-jsd-all-4up-1.png}
+%       \end{figure}
+% \end{frame}
 
 
 \begin{frame}{Segmentation by patterns}
@@ -505,12 +453,12 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
 \end{frame}
       %
       
- \begin{frame}
-        \frametitle{Evaluating segmentation success}
-    \begin{figure}
-        \centering        \includegraphics[height=0.7\textheight]{graphics_david/all-files-resolutions-4.png}
-      \end{figure}
-  \end{frame}
+ % \begin{frame}
+ %        \frametitle{Evaluating segmentation success}
+ %    \begin{figure}
+ %        \centering        \includegraphics[height=0.7\textheight]{graphics_david/all-files-resolutions-4.png}
+ %      \end{figure}
+ %  \end{frame}
 
   \begin{frame}
     \frametitle{Characterizing the patterns in a segment}
@@ -552,14 +500,14 @@ A recent development by Nowosad\footnote{https://jakubnowosad.com/}, based on an
     \end{figure}
 \end{frame}
 
-\begin{frame}{Resolution and scale}
-DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size'') -- what is the relation to map scale?
-\\[2ex]
-    \begin{figure}
-    \centering
-\includegraphics[width=\textwidth]{./graphics_david/McBratney2013_Table1.png}
-\end{figure}
-\end{frame}
+% \begin{frame}{Resolution and scale}
+% DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size'') -- what is the relation to map scale?
+% \\[2ex]
+%     \begin{figure}
+%     \centering
+% \includegraphics[width=\textwidth]{./graphics_david/McBratney2013_Table1.png}
+% \end{figure}
+% \end{frame}
 
 \begin{frame}
   \frametitle{DSM scale effects -- 20 vs.\ 250~m resolution gSSURGO}
@@ -571,18 +519,18 @@ DSMaps are \textbf{gridded} at some horizontal \textbf{resolution} (``pixel size
 \end{figure}  
 \end{frame}
 
-\begin{frame}{What will the map be used for?}
-    \begin{itemize}
-        \item This governs the selection of grid cell size.
-        \item The soil variability \emph{within} the grid cell is ignored \ldots
-        \begin{itemize}
-            \item \ldots for the map user \ldots
-            \item so, for the evaluator
-        \end{itemize}
-        \item The \textbf{single value} of the grid cell represents the value the user will put in their ``model''
-        \item The \textbf{uncertainty} of the grid cell is the uncertainty \textbf{of that predicted value}, \emph{not} the variance within the grid cell.
-    \end{itemize}
-\end{frame}
+% \begin{frame}{What will the map be used for?}
+%     \begin{itemize}
+%         \item This governs the selection of grid cell size.
+%         \item The soil variability \emph{within} the grid cell is ignored \ldots
+%         \begin{itemize}
+%             \item \ldots for the map user \ldots
+%             \item so, for the evaluator
+%         \end{itemize}
+%         \item The \textbf{single value} of the grid cell represents the value the user will put in their ``model''
+%         \item The \textbf{uncertainty} of the grid cell is the uncertainty \textbf{of that predicted value}, \emph{not} the variance within the grid cell.
+%     \end{itemize}
+% \end{frame}
 
 \begin{frame}{Should the DSM match the polygon map?}
     \begin{itemize}
