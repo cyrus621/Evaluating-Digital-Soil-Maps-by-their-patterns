@@ -131,6 +131,7 @@ library(philentropy, warn.conflicts=FALSE, quiet = TRUE)
 # remotes::install_github("r-spatialecology/landscapemetrics")
 library(landscapemetrics, warn.conflicts=FALSE, quiet = TRUE) 
 # utility functions for raster* landscape objects)
+remotes::install_github("ropensci/landscapetools")
 library(landscapetools, warn.conflicts=FALSE, quiet = TRUE)
 # aggreagate maps with supercells
 # this package is in active development, maybe use the development version
