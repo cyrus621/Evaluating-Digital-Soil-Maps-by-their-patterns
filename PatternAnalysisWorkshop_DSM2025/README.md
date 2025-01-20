@@ -14,6 +14,10 @@ For the workshop:
 - `SoilGrids250_MakeRasterStack.qmd/html/pdf`
 - `PatternAnalysisWorkshopTutorial_DSM2025.qmd/html/pdf`
 
+A sample tile, as a `GeoTIFF` with both the `.tif` itself and the `.tfw` "world file:
+
+- `lat1011_lon7778_stack.tif`, `.tfw`
+
 Optional, if there is time:
 
 - `PrepareGSOC.R`
