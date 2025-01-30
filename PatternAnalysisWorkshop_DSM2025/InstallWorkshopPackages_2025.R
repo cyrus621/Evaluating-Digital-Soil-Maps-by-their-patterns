@@ -1,5 +1,5 @@
 # Worshop: Pattern Analysis for Evaluating Soil Maps
-#  Pedometrics 2024, Las Cruces NM (USA)
+# DSM 2025, Bangalore, Karnataka (India)
 # Install required packages
 
 # function
@@ -15,9 +15,9 @@ install.pkg <- function(pkg) {
 
 
 # list of packages
-workshop.pkgs <- c("terra", "raster", "sf", "sp",
+workshop.pkgs <- c("terra", "raster", "sf",
                    "gstat", "motif", "philentropy", 
-                   "landscapemetrics", "landscapetools",
+                   "landscapemetrics",
                    "ggplot2", "gridExtra", "tidyterra",
                    "dplyr", "RColorBrewer",
                    "glcm", "GLCMTextures",

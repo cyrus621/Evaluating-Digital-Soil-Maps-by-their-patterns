@@ -6,7 +6,7 @@ author:
   - name: D G Rossiter
     orcid: 0000-0003-4558-1286
     email: david.rossiter@isric.org, d.g.rossiter@cornell.edu
-    url: https://www.css.cornell.edu/faculty/dgr2/pubs/index.html
+    url: "https://www.css.cornell.edu/faculty/dgr2"
     affiliation:
       - name: ISRIC-World Soil Information
         city: Wageningen
@@ -48,6 +48,7 @@ format:
     docx:
       title: "Workshop DSM 2025: Pattern Analysis for Evaluating Soil Maps"
       author: "D G Rossiter (ORCID 0000-0003-4558-1286)"
+      url:  "https://www.css.cornell.edu/faculty/dgr2/"
       toc: true
       number-sections: true
       highlight-style: github
@@ -111,8 +112,6 @@ library(raster, warn.conflicts=FALSE, quiet = TRUE)
 # Pebesma et al. spatio-temporal data
 # Simple Features
 library(sf, warn.conflicts=FALSE, quiet = TRUE)          
-# `sp` spatial classes -- still needed for conversions
-library(sp, warn.conflicts=FALSE, quiet = TRUE)
 ```
 
 Third, packages specific to the pattern analysis in this workshop:
@@ -130,10 +129,7 @@ library(philentropy, warn.conflicts=FALSE, quiet = TRUE)
 # install.packages("remotes")
 # remotes::install_github("r-spatialecology/landscapemetrics")
 library(landscapemetrics, warn.conflicts=FALSE, quiet = TRUE) 
-# utility functions for raster* landscape objects)
-remotes::install_github("ropensci/landscapetools")
-library(landscapetools, warn.conflicts=FALSE, quiet = TRUE)
-# aggreagate maps with supercells
+# aggregate maps with supercells
 # this package is in active development, maybe use the development version
 # install.packages("supercells", repos = "https://nowosad.r-universe.dev")
 library(supercells, warn.conflicts=FALSE, quiet = TRUE)
@@ -195,9 +191,7 @@ The raster stack has `r dim(sg)[3]` layers, this is six depth slices for each of
 #| label: fig-layer1-all-properties
 #| warning: false
 to.plot <- grep(depth.names[1], layer.names, fixed = TRUE)
-par(mfrow=c(4,2))
-tmp <- terra::plot(sg[[to.plot]])
-par(mfrow=c(1,1))
+tmp <- terra::plot(sg[[to.plot]], nr = 2)
 ```
 
 We see a wide range of values and patterns.
@@ -210,9 +204,7 @@ We see a wide range of values and patterns.
 to.plot <- grep(property.names[3], names(sg), fixed = TRUE)
 r.max <- ceiling(max(global(sg[[to.plot]], fun = "max", na.rm = TRUE)))
 r.min <- floor(min(global(sg[[to.plot]], fun = "min", na.rm = TRUE)))
-par(mfrow=c(1,1), mar=c(5,4,4,2)+0.1)
-tmp <- terra::plot(sg[[to.plot]], range = c(r.min, r.max))
-par(mfrow=c(1,1))
+tmp <- terra::plot(sg[[to.plot]], range = c(r.min, r.max), nr = 2)
 ```
 
 ## Crop to a test area
@@ -243,9 +235,7 @@ sg4 <- crop(sg, ext(ext.crop))
 #| label: fig-layer1-properties-1/4
 #| warning: false
 to.plot <- grep(depth.names[1], layer.names, fixed = TRUE)
-par(mfrow=c(1,1), mar=c(5,4,4,2)+0.1)
-tmp <- terra::plot(sg4[[to.plot]])
-par(mfrow=c(1,1))
+tmp <- terra::plot(sg4[[to.plot]], nr = 2)
 ```
 
 We see a wide range of values and patterns.
@@ -258,9 +248,7 @@ We see a wide range of values and patterns.
 to.plot <- grep(property.names[3], layer.names, fixed = TRUE)
 r.max <- ceiling(max(global(sg4[[to.plot]], fun = "max", na.rm = TRUE)))
 r.min <- floor(min(global(sg4[[to.plot]], fun = "min", na.rm = TRUE)))
-par(mfrow=c(2,3))
-tmp <- terra::plot(sg4[[to.plot]], range = c(r.min, r.max))
-par(mfrow=c(1,1))
+tmp <- terra::plot(sg4[[to.plot]], range = c(r.min, r.max), nr = 2)
 ```
 
 ## Transform to a metric CRS
@@ -324,44 +312,36 @@ In this section we compute short-range variograms. These reveal local structure.
 
 Note: Variograms are typically produced separately for each mapped soil property. To characterize an inherent landscape scale, a number of properties can be combined by principal component analysis (PCA) and the first component (PC1) can be characterized.
 
-*Task*: Convert the `terra::SpatRaster` raster stack to an `sp::SpatialPointsDataFrame`.
-
-and then to an `sf:sf` stack in order to compute variograms. The `gstat::variogram` method must be applied to an object of class `sp` or `sf`, not directly to a `terra::SpatRaster`.
-
-Note: There is (so far) no direct conversion from `terra::SpatRaster` objects to `sf:sf` objects. 
+*Task*: Convert the `terra::SpatRaster` raster stack to an `sf::sf` Simple Features object, in order to compute variograms. The `gstat::variogram` method can not be applied directly to an object of class `terra::SpatRaster`.
 
 ```{r}
 dim(sg4.utm)
 # keep the coordinates in the data frame
-sg4.sp <- as.data.frame(sg4.utm, xy = TRUE)
-# convert to SpatialPointsDataFrame by indentifying the fields that are coordinates
-coordinates(sg4.sp) <- ~ x + y
-class(sg4.sp)
-dim(sg4.sp)
-```
-
-Now convert to Simple Features (`sf`) objects, one per property and depth:
-
-```{r}
-sg4.sf <- lapply(1:dim(sg4.sp)[2], function(i) {
-   st_as_sf(sg4.sp[,i])
-})
-class(sg4.sf); length(sg4.sf)
-# examine one `sf` object in the list
+sg4.df <- as.data.frame(sg4.utm, xy = TRUE)
+# build the SF object, specifying the meaning of the coordinates
+sg4.sf <- st_as_sf(sg4.df, coords = c("x", "y"), crs = crs(sg4.utm))
+class(sg4.sf)
+dim(sg4.sf)
+# examine one property
+names(sg4)[[1]]
 head(sg4.sf[[1]])
+summary(sg4.sf[[1]])
 ```
 
-Each item in the list `sg4.sf` is a Simple Features points object.
 
-*Task:* Set the initial parameters for empirical variogram as the resolution. 
+Each field in the Simple Features points object `sg4.sf` is one property.
 
-If the bin width is the resolution, we get one-grid-cell spatial correlations.
+*Task:* Set the initial parameters for empirical variogram as the resolution.
+Adjust these after seeing the empirical variogram.
+
+If the bin width is the resolution, we get one-grid-cell spatial correlations. 
+We can use this fine resolution because there are so many cell-pairs.
 
 ```{r}
 #| label: variogram_parameters
-range.init <- 10000  # estimated range, m 
-cutoff.init <- range.init*5  # cutoff for empirical variogram, m
-width.init <- 2000   # bin width
+range.init <- 8000  # estimated range, m 
+cutoff.init <- range.init*3  # cutoff for empirical variogram, m
+width.init <- 250   # bin width
 ```
 
 
@@ -375,17 +355,22 @@ You can also use one of the layer names to specify the raster layer to analyse, 
 #| label: variogram_empirical
 #| fig-width: 8
 #| fig-height: 4
-print(layer.names)
-names(sg4.sf[[1]])
+print(names(sg4.sf))
+# find the column number for a target variable
+ix <- which(names(sg4.sf) == "clay_30-60cm_mean")
 # give the `sf` object a simple name, also the target variable
-var <- sg4.sf[[1]]
+var <- sg4.sf[ix]
 names(var)[1] <- "z"
+summary(var)
+plot(var, pch = 15, asp = 1)
 v.sg <- variogram(z ~ 1, loc = var, 
                   cutoff=cutoff.init, width=width.init)
 #
-plot(v.sg, main = layer.names[1])
+v.sg
+plot(v.sg, pch = 20, main = names(sg4.sf)[ix])
 ```
 
+Here you should go back and adjust the cutoff so only the local part of the variogram is shown and will thus be modelled (next step).
 
 *Task:* Fit a variogram model to the empirical variogram.
 
@@ -393,21 +378,30 @@ The differences can be quantified by the parameters of a fitted variogram model.
 
 We use the `fit.variogram` method to adjust an initial estimate by weighted least squares (linear in the number of point-pairs and inverse squared in the separation disatance, i.e., the default `gstat` method 7). The estimated sill is the maximum $\gamma$ in the empirical variogram.
 
+You can experiment with different variogram model forms. 
+Notice that the nugget is likely zero due to the large cell size.
+
 ```{r}
 #| label: variogram_model
-vm.sg <- vgm(0.8*max(v.sg$gamma), "Gau", range.init, 0)
+# fit with Exponential, a default model for many environmental variables
+vm.sg <- vgm(psill = 0.8*max(v.sg$gamma), 
+             model = "Exp", 
+             range = range.init,
+             nugget = 0)
 print(vmf.sg <- fit.variogram(v.sg, model=vm.sg))
 ```
+
+Plot the empirical variogram and the fit:
 
 ```{r}
 #| label: fitted_variogram_model
 #| fig-width: 8
 #| fig-height: 4
-plot(v.sg, model=vmf.sg, main = layer.names[1], 
+plot(v.sg, model=vmf.sg, main = names(sg4.sf)[ix], pch = 20,
      xlab = "separation m", ylab = expression(paste(Delta, plain(pH)^2)))
 ```
 
-Q: How well does the fitted model match the empirical variogram? If the fit has some problems, what could be a solution?
+Q: How well does the fitted model match the empirical variogram? If the fit has some problems, what could be a solution? Recall, the variogram represents the average *short range* spatial structure.
 
 ## Moving-window local association {#sec-mwla}
 
@@ -945,6 +939,8 @@ Careful examination reveals that the cluster in the NW corner corresponds to an 
 ## Landscape metrics {#sec-lsm}
 
 Landscape metrics have a long history of use in landscape ecology [@Uuemaa.etal2013]. A wide variety have been collected in the well-known FRAGSTATS computer program [@McGarigal.etal2012]. These have been implemented in the R context by the `landscapemetrics` package[^2] [@Hesselbarth.etal2019; @Hesselbarth2021]. Although the ecological relevance of FRAGSTATS metrics have been criticized [@Kupfer2012], here we use them to *characterize spatial patterns of soil properties* or *classes*, not as inputs to landscape ecology models.
+
+These were used to compare soil maps of the same area by  @rossiterHowWellDoes2022.
 
 [^2]: https://r-spatialecology.github.io/landscapemetrics/
 
